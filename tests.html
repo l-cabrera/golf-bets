@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Golf Bets tests</title>
+<style>
+body{margin:16px;background:#111;color:#ececea;font:14px/1.4 system-ui,sans-serif}
+h1{font-size:20px;margin:0 0 6px}
+#sum{font-weight:600;margin:0 0 12px}
+table{border-collapse:collapse;width:100%}
+td{padding:4px 6px;border-bottom:1px solid #2a2a28;vertical-align:top}
+.ok{color:#8cc4a0}.bad{color:#f08a80}
+code{color:#bdbdb8}
+</style>
+</head>
+<body>
+<h1>Golf Bets tests</h1>
+<p id="sum">Running…</p>
+<table id="t"></table>
+<!-- the real app, loaded hidden; tests only read and compute in memory and never save -->
+<iframe id="app" src="./index.html" style="display:none"></iframe>
+<script>
+'use strict';
+// Runs inside the app's own page so it can reach parseUtterance, compute, mkState, etc.
+function suite(){
+  const res=[];
+  const fresh=()=>{S=mkState();['Lautaro','Ryan','Mike','Dave'].forEach((n,k)=>S.players[k].name=n)};
+  const fmt=p=>p.err?'error: '+p.err:p.acts.map(a=>`${a.p==='?'?'?':pname(a.p)}:${a.k}${a.k==='bbb'?':'+a.key:''}${a.v??''}${a.ty?'/'+a.ty:''}@h${a.h+1}`).join(', ')
+    +(p.ask?` [Who?${p.ask.learn?' learn='+p.ask.learn:''}]`:'')+(p.warn&&p.warn.length?` [warn ${p.warn.join(',')}]`:'');
+  const eq=(name,got,want)=>res.push({name,got:String(got),want:String(want),ok:String(got)===String(want)});
+
+  // ---- voice parser: East Potomac White, standing on hole 9 (par 4) ----
+  const PHRASES=[
+    ['Ryan par, everyone else bogey','Ryan:score4@h9, Lautaro:score5@h9, Mike:score5@h9, Dave:score5@h9'],
+    ['I told you, Ryan 5','Ryan:score5@h9 [warn Lautaro]'],
+    ['Ryan hit a 3 wood onto the green, two putts for par','Ryan:score4@h9, Ryan:putts2@h9'],
+    ['Mike carried the water, par','Mike:score4@h9'],
+    ['Mike hit his sand wedge to 3 feet, par','Mike:score4@h9'],
+    ['Ryan made par on 7','Ryan:score4@h7'],
+    ['Dave 6 on the 4th','Dave:score6@h4'],
+    ['Ryan 5 on the second shot he found the bunker','Ryan:score5@h9, Ryan:fine/bunker@h9'],
+    ['Lautaro 4 on number 3','Lautaro:score4@h3'],
+    ["Dave didn't make it past the ladies tees",'Dave:fine/short@h9'],
+    ['Dave is closest','Dave:bbb:bango@h9'],
+    ['Mike holed out first','Mike:bbb:bongo@h9'],
+    ['Ryan on first','Ryan:bbb:bingo@h9'],
+    ['Mike gave Dave a swing tip','?:fine/tip@h9 [Who?]'],
+    ['Lautaro bingo and bongo, Ryan closest','Lautaro:bbb:bingo@h9, Ryan:bbb:bango@h9, Lautaro:bbb:bongo@h9'],
+    ['Ryan told Mike to keep his head down','?:fine/tip@h9 [Who?]'],
+    ["Dave said I didn't see it bounce",'Dave:fine/cliche@h9'],
+    ['Lautaro and Ryan 6, Mike 7, Dave 8','Lautaro:score6@h9, Ryan:score6@h9, Mike:score7@h9, Dave:score8@h9'],
+    ['5 for Mike and Dave','Mike:score5@h9, Dave:score5@h9'],
+    ['Brian two putts','?:putts2@h9 [Who? learn=brian]'],
+    ['Wow two putts','?:putts2@h9 [Who?]'],
+    ['Mike lost his ball in the woods','Mike:fine/lost@h9'],
+    ['Dave hit the green in regulation','Dave:fine/gir@h9'],
+    ['Ryan took a penalty drop','Ryan:fine/pen@h9'],
+    ['Ryan 5, Lautaro','Ryan:score5@h9 [warn Lautaro]'],
+    ['Lautaro 3 two putts, Ryan 4 two putts, Mike 3 one putt, Dave 4 one putt','Lautaro:score3@h9, Lautaro:putts2@h9, Ryan:score4@h9, Ryan:putts2@h9, Mike:score3@h9, Mike:putts1@h9, Dave:score4@h9, Dave:putts1@h9'],
+    ['everyone double, Ryan triple','Lautaro:score6@h9, Mike:score6@h9, Dave:score6@h9, Ryan:score7@h9'],
+    ["Ryan said you'll find it",'Ryan:fine/cliche@h9'],
+    ['I three putted','Lautaro:putts3@h9'],
+    ["Mike's ball went in the water",'Mike:fine/water@h9'],
+    ['Ryan hit a tree on hole 4','Ryan:fine/tree@h4'],
+  ];
+  fresh();round().cur=8;
+  for(const [t,want] of PHRASES)eq('voice: '+t,fmt(parseUtterance(t)),want);
+
+  // ---- games & money ----
+  const ledger=cat=>compute().ledger.filter(l=>l.cat===cat).map(l=>`${pname(l.from)}>${pname(l.to)} ${l.amt}`).join(', ');
+  const play=(r,rows)=>{for(const p in rows)rows[p].forEach((v,i)=>setArr(r.scores,p,i,v,r.holes.length))};
+  const lost=(r,p,h,t)=>S.events.push({id:'L'+p+h,t:t||h,r:r.id,h,p,type:'lost'});
+  const all9=v=>Array(9).fill(v);
+  let r;
+
+  fresh();r=round();play(r,{p1:all9(4),p2:all9(4),p3:all9(4),p4:all9(4)});
+  const B0=compute().R[r.id].ball;
+  eq('longest ball: nobody lost one → no winner, no money',`${B0.w} ${B0.noLoss} [${ledger('Longest ball')}]`,'null true []');
+
+  fresh();r=round();lost(r,'p3',1);lost(r,'p4',2);lost(r,'p1',4);
+  eq('longest ball: last one standing collects from each',ledger('Longest ball'),'Lautaro>Ryan 1, Mike>Ryan 1, Dave>Ryan 1');
+
+  fresh();r=round();lost(r,'p3',1);lost(r,'p4',2);play(r,{p1:all9(4),p2:all9(4),p3:all9(5),p4:all9(5)});
+  eq('longest ball: two still in at the end split it',ledger('Longest ball'),'Mike>Lautaro 0.5, Mike>Ryan 0.5, Dave>Lautaro 0.5, Dave>Ryan 0.5');
+
+  fresh();r=round();S.events.push({id:'g',t:1,r:r.id,h:0,p:'p1',type:'gir'});
+  eq('first GIR pays the first player',ledger('First GIR'),'Ryan>Lautaro 1, Mike>Lautaro 1, Dave>Lautaro 1');
+  r.games.gir=false;
+  eq('first GIR turned off moves no money',ledger('First GIR'),'');
+
+  fresh();r=round();S.events.push({id:'f',t:1,r:r.id,h:0,p:'p2',type:'tree'});play(r,{p1:[3],p2:[4],p3:[4],p4:[5]});
+  eq('jar: a fine, then an outright hole win takes it',ledger('Jar'),'Jar>Lautaro 1');
+
+  // White is par 34. All 4s with 9 strokes = net 27, 7 under → drops 7 × 0.5. All 5s = net 36, over → unchanged.
+  fresh();S.players.forEach(p=>p.hcp=9);r=round();play(r,{p1:all9(4),p2:all9(5),p3:all9(5),p4:all9(5)});
+  const g=compute().R[r.id].segs[0];
+  eq('handicap: beating net par cuts it, a bad nine never raises it',S.players.map(p=>g.after[p.id]).join(' '),'5.5 9 9 9');
+
+  fresh();round().jarRule='something-old';
+  let rulesOk='ok';try{vRules()}catch(e){rulesOk='crash: '+e.message}
+  eq('rules tab survives an unknown jar rule',rulesOk,'ok');
+  return res;
+}
+const frame=document.getElementById('app');
+frame.addEventListener('load',()=>{
+  let res;
+  try{res=frame.contentWindow.eval('('+suite.toString()+')()')}
+  catch(e){document.getElementById('sum').textContent='Suite crashed: '+e.message;document.getElementById('sum').className='bad';return}
+  const bad=res.filter(r=>!r.ok);
+  const sum=document.getElementById('sum');
+  sum.textContent=bad.length?`${bad.length} of ${res.length} failed`:`All ${res.length} passed`;
+  sum.className=bad.length?'bad':'ok';
+  const esc=s=>s.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+  document.getElementById('t').innerHTML=[...bad,...res.filter(r=>r.ok)].map(r=>`<tr><td class="${r.ok?'ok':'bad'}">${r.ok?'pass':'FAIL'}</td><td>${esc(r.name)}${r.ok?'':`<br>got <code>${esc(r.got)}</code><br>want <code>${esc(r.want)}</code>`}</td></tr>`).join('');
+});
+</script>
+</body>
+</html>

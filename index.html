@@ -9,7 +9,6 @@
 <link rel="apple-touch-icon" href="icon-192.png">
 <title>Golf Bets</title>
 <style>
-:root{color-scheme:dark;--bg:#0b110d;--card:#142019;--ink:#eef5ef;--mut:#9fb1a3;--line:#26372c;--acc:#15803d;--g:#4ade80;--gl:#123821;--red:#fca5a5;--rl:#3b1414;--gold:#fcd34d;--yl:#3a2e0b;--blue:#93c5fd;--bl:#152a4a}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.35 system-ui,-apple-system,Roboto,"Segoe UI",sans-serif}
 button,input,select{font:inherit;color:inherit}
@@ -29,7 +28,9 @@ body:not(.viewer) nav#tabs [data-t=rules]{display:none}
 body.viewer #mic,body.viewer nav#tabs [data-t=home],body.viewer nav#tabs [data-t=hole],body.viewer nav#tabs .gap{display:none}
 body.viewer main{padding-bottom:90px}
 .viewbar{background:var(--bl);color:var(--blue);border-radius:12px;padding:8px 12px;font-size:13px;margin-bottom:10px}
-.live{font-size:13px;margin:8px 0 2px}
+.live{font-size:13px;margin:8px 0 2px;font-weight:600}
+.live.ok{color:var(--g)}
+.live.bad{color:var(--red)}
 .toc{display:flex;flex-wrap:wrap;gap:6px}
 .toc .chip{height:32px;font-size:13px;font-weight:600}
 .rules p{margin:6px 0;font-size:15px;line-height:1.45}
@@ -135,74 +136,73 @@ input[type=number]{width:80px}
 #toast button{border:0;background:none;color:var(--g2,#4ade80);font-weight:800;padding:6px}
 [hidden]{display:none!important}
 
-/* ===== Clean skin (preview): flat sections, square-ish corners, one accent, no decoration ===== */
+/* ===== Design: flat sections, square-ish corners, one accent, no decoration ===== */
 /* always dark, whatever the phone's light/dark setting */
-[data-skin=clean]{color-scheme:dark;--bg:#111;--card:#111;--ink:#ececea;--mut:#8d8d89;--line:#2a2a28;--acc:#2f6f47;--g:#8cc4a0;--gl:transparent;--red:#f08a80;--rl:transparent;--gold:#ececea;--yl:transparent;--blue:#ececea;--bl:transparent}
-[data-skin=clean] body{font-variant-numeric:tabular-nums}
-[data-skin=clean] main{padding:8px 16px 150px}
-[data-skin=clean] h2{font-size:20px;font-weight:650;margin:10px 0 6px}
-[data-skin=clean] h3{font-size:11px;font-weight:600;letter-spacing:.08em}
-[data-skin=clean] .card{border:0;border-top:1px solid var(--line);border-radius:0;padding:14px 0;margin:0;background:transparent}
-[data-skin=clean] .pc{padding:10px 0;margin:0}
-[data-skin=clean] .help{display:none!important}
-[data-skin=clean] .big{border-radius:4px;height:48px;font-size:16px;font-weight:600;background:var(--acc)!important;color:#fff!important;border:0!important}
-[data-skin=clean] .big[data-a=shareLive],[data-skin=clean] .big[data-a=share]{background:transparent!important;color:var(--ink)!important;border:1px solid var(--ink)!important}
-[data-skin=clean] .btn{border-radius:4px;background:transparent;font-weight:600}
-[data-skin=clean] .chip{border-radius:4px;background:transparent;font-weight:500}
-[data-skin=clean] .chip.on{background:var(--ink);border-color:var(--ink);color:var(--bg)}
-[data-skin=clean] input[type=text],[data-skin=clean] input[type=number],[data-skin=clean] select{border-radius:4px;background:transparent}
-[data-skin=clean] .pill{border-radius:3px;background:transparent!important;color:var(--ink)!important;border:1px solid var(--line);font-weight:500;padding:3px 8px}
-[data-skin=clean] .pills{justify-content:flex-start}
-[data-skin=clean] .hh .nav{border-radius:4px;background:transparent;width:44px;height:44px;font-size:22px}
-[data-skin=clean] .hn{font-size:24px;font-weight:650}
-[data-skin=clean] .nm{font-weight:600}
-[data-skin=clean] .dots{color:var(--mut)}
-[data-skin=clean] .fb{border:1px solid var(--line);border-radius:4px;color:var(--ink);font-weight:500}
-[data-skin=clean] .stp{border-radius:4px;background:transparent;font-weight:400}
-[data-skin=clean] .sv{width:46px;height:46px;border-radius:4px;border:1px solid var(--line);font-weight:600;background:transparent;color:var(--ink)}
-[data-skin=clean] .sv.empty{color:var(--mut);font-weight:400}
+:root{color-scheme:dark;--bg:#111;--card:#111;--ink:#ececea;--mut:#8d8d89;--line:#2a2a28;--acc:#2f6f47;--g:#8cc4a0;--gl:transparent;--red:#f08a80;--rl:transparent;--gold:#ececea;--yl:transparent;--blue:#ececea;--bl:transparent}
+:root body{font-variant-numeric:tabular-nums}
+:root main{padding:8px 16px 150px}
+:root h2{font-size:20px;font-weight:650;margin:10px 0 6px}
+:root h3{font-size:11px;font-weight:600;letter-spacing:.08em}
+:root .card{border:0;border-top:1px solid var(--line);border-radius:0;padding:14px 0;margin:0;background:transparent}
+:root .pc{padding:10px 0;margin:0}
+:root .big{border-radius:4px;height:48px;font-size:16px;font-weight:600;background:var(--acc)!important;color:#fff!important;border:0!important}
+:root .big[data-a=shareLive],:root .big[data-a=share]{background:transparent!important;color:var(--ink)!important;border:1px solid var(--ink)!important}
+:root .btn{border-radius:4px;background:transparent;font-weight:600}
+:root .chip{border-radius:4px;background:transparent;font-weight:500}
+:root .chip.on{background:var(--ink);border-color:var(--ink);color:var(--bg)}
+:root input[type=text],:root input[type=number],:root select{border-radius:4px;background:transparent}
+:root .pill{border-radius:3px;background:transparent!important;color:var(--ink)!important;border:1px solid var(--line);font-weight:500;padding:3px 8px}
+:root .pills{justify-content:flex-start}
+:root .hh .nav{border-radius:4px;background:transparent;width:44px;height:44px;font-size:22px}
+:root .hn{font-size:24px;font-weight:650}
+:root .nm{font-weight:600}
+:root .dots{color:var(--mut)}
+:root .fb{border:1px solid var(--line);border-radius:4px;color:var(--ink);font-weight:500}
+:root .stp{border-radius:4px;background:transparent;font-weight:400}
+:root .sv{width:46px;height:46px;border-radius:4px;border:1px solid var(--line);font-weight:600;background:transparent;color:var(--ink)}
+:root .sv.empty{color:var(--mut);font-weight:400}
 /* scorecard notation: birdie circled, eagle double circle, bogey boxed, double bogey or worse double box */
-[data-skin=clean] .sv.b,[data-skin=clean] .sv.bb{border:1.5px solid var(--ink);border-radius:50%;background:transparent;color:var(--ink)}
-[data-skin=clean] .sv.bb{box-shadow:inset 0 0 0 3px var(--bg),inset 0 0 0 4.5px var(--ink)}
-[data-skin=clean] .sv.o1{border:1.5px solid var(--ink);background:transparent;color:var(--ink)}
-[data-skin=clean] .sv.o2{border:4px double var(--ink);background:transparent;color:var(--ink)}
-[data-skin=clean] .sx{border-radius:0;min-width:20px;line-height:18px;background:transparent!important;color:var(--ink)!important;font-weight:500}
-[data-skin=clean] .sx.b,[data-skin=clean] .sx.bb{border:1px solid var(--ink);border-radius:50%}
-[data-skin=clean] .sx.bb{box-shadow:0 0 0 2px var(--bg),0 0 0 3px var(--ink)}
-[data-skin=clean] .sx.o1{border:1px solid var(--ink)}
-[data-skin=clean] .sx.o2{border:3px double var(--ink)}
-[data-skin=clean] .ft{border-radius:3px;background:transparent!important;color:var(--mut)!important;border:1px solid var(--line)!important;font-weight:500}
-[data-skin=clean] .ft b{background:none;width:16px}
-[data-skin=clean] .bbr .lab{color:var(--mut);font-weight:500}
-[data-skin=clean] .step{color:var(--mut);font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;margin:16px 0 6px}
-[data-skin=clean] .tx{font-size:16px}
-[data-skin=clean] .jarbig{color:var(--ink);font-size:28px;font-weight:600}
-[data-skin=clean] .pos{color:var(--ink)}
-[data-skin=clean] .neg{color:var(--red)}
-[data-skin=clean] th{font-size:11px;letter-spacing:.06em}
-[data-skin=clean] nav#tabs{background:var(--bg)}
-[data-skin=clean] nav#tabs button span{display:none}
-[data-skin=clean] nav#tabs button{font-size:13px;font-weight:500;padding:16px 0 18px;border-top:2px solid transparent;margin-top:-1px}
-[data-skin=clean] nav#tabs button.on{color:var(--ink);border-top-color:var(--ink);font-weight:600}
-[data-skin=clean] #mic{width:52px;height:52px;background:var(--ink);color:var(--bg);box-shadow:none;border:0!important;bottom:calc(6px + env(safe-area-inset-bottom))}
-[data-skin=clean] #mic svg{width:24px;height:24px}
-[data-skin=clean] #toast{border-radius:4px;box-shadow:none}
-[data-skin=clean] #toast.warn{background:var(--red)}
-[data-skin=clean] #banner{border-radius:4px;border:0;background:var(--ink);color:var(--bg);box-shadow:none;font-weight:600;font-size:15px}
-[data-skin=clean] #sheet{border-radius:8px 8px 0 0}
-[data-skin=clean] .viewbar{background:transparent;color:var(--mut);padding:4px 0 8px;border-bottom:1px solid var(--line);border-radius:0;margin-bottom:0}
+:root .sv.b,:root .sv.bb{border:1.5px solid var(--ink);border-radius:50%;background:transparent;color:var(--ink)}
+:root .sv.bb{box-shadow:inset 0 0 0 3px var(--bg),inset 0 0 0 4.5px var(--ink)}
+:root .sv.o1{border:1.5px solid var(--ink);background:transparent;color:var(--ink)}
+:root .sv.o2{border:4px double var(--ink);background:transparent;color:var(--ink)}
+:root .sx{border-radius:0;min-width:20px;line-height:18px;background:transparent!important;color:var(--ink)!important;font-weight:500}
+:root .sx.b,:root .sx.bb{border:1px solid var(--ink);border-radius:50%}
+:root .sx.bb{box-shadow:0 0 0 2px var(--bg),0 0 0 3px var(--ink)}
+:root .sx.o1{border:1px solid var(--ink)}
+:root .sx.o2{border:3px double var(--ink)}
+:root .ft{border-radius:3px;background:transparent!important;color:var(--mut)!important;border:1px solid var(--line)!important;font-weight:500}
+:root .ft b{background:none;width:16px}
+:root .bbr .lab{color:var(--mut);font-weight:500}
+:root .step{color:var(--mut);font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;margin:16px 0 6px}
+:root .tx{font-size:16px}
+:root .jarbig{color:var(--ink);font-size:28px;font-weight:600}
+:root .pos{color:var(--ink)}
+:root .neg{color:var(--red)}
+:root th{font-size:11px;letter-spacing:.06em}
+:root nav#tabs{background:var(--bg)}
+:root nav#tabs button span{display:none}
+:root nav#tabs button{font-size:13px;font-weight:500;padding:16px 0 18px;border-top:2px solid transparent;margin-top:-1px}
+:root nav#tabs button.on{color:var(--ink);border-top-color:var(--ink);font-weight:600}
+:root #mic{width:52px;height:52px;background:var(--ink);color:var(--bg);box-shadow:none;border:0!important;bottom:calc(6px + env(safe-area-inset-bottom))}
+:root #mic svg{width:24px;height:24px}
+:root #toast{border-radius:4px;box-shadow:none}
+:root #toast.warn{background:var(--red)}
+:root #banner{border-radius:4px;border:0;background:var(--ink);color:var(--bg);box-shadow:none;font-weight:600;font-size:15px}
+:root #sheet{border-radius:8px 8px 0 0}
+:root .viewbar{background:transparent;color:var(--mut);padding:4px 0 8px;border-bottom:1px solid var(--line);border-radius:0;margin-bottom:0}
 </style>
 </head>
 <body>
 <main id="view"></main>
 <button id="mic" data-a="voice" aria-label="Voice log"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 17v5"/></svg></button>
 <nav id="tabs">
-  <button data-a="tab" data-t="home"><span>🏠</span>Home</button>
-  <button data-a="tab" data-t="hole"><span>⛳</span>Hole</button>
+  <button data-a="tab" data-t="home">Home</button>
+  <button data-a="tab" data-t="hole">Hole</button>
   <div class="gap"></div>
-  <button data-a="tab" data-t="board"><span>📋</span>Board</button>
-  <button data-a="tab" data-t="money"><span>💵</span>Money</button>
-  <button data-a="tab" data-t="rules"><span>📖</span>Rules</button>
+  <button data-a="tab" data-t="board">Board</button>
+  <button data-a="tab" data-t="money">Money</button>
+  <button data-a="tab" data-t="rules">Rules</button>
 </nav>
 <div id="veil" hidden data-a="close"></div>
 <div id="sheet" hidden></div>
@@ -217,35 +217,23 @@ const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&
 const r2=n=>Math.round(n*100)/100;
 const money=n=>(n<-0.004?'−':'')+'$'+(Math.abs(n)%1?Math.abs(n).toFixed(2):Math.abs(n).toFixed(0));
 const rel=n=>n===0?'E':(n>0?'+'+n:'−'+(-n));
-// Design skin, per device: 'clean' (default) or 'classic'. ?skin=clean|classic switches and remembers it.
-const SKIN=(()=>{const q=new URLSearchParams(location.search).get('skin');try{if(q)localStorage.setItem('golfbets.skin',q);return q||localStorage.getItem('golfbets.skin')||'clean'}catch(e){return q||'clean'}})();
-const CLEAN=SKIN==='clean';
-document.documentElement.dataset.skin=SKIN;
-const L=(classic,clean)=>CLEAN?clean:classic;
-// the clean skin drops decorative emoji from whatever was just rendered
-const EMOJI=/[\p{Extended_Pictographic}\u{FE0F}\u{200D}]+ ?/gu;
-function deco(el){
-  if(!CLEAN||!el)return;
-  const w=document.createTreeWalker(el,NodeFilter.SHOW_TEXT);let n;
-  while((n=w.nextNode())){const v=n.nodeValue.replace(EMOJI,'').replace(/＋ ?/g,'+ ');if(v!==n.nodeValue)n.nodeValue=v}
-}
 
 // Everything you can log on a player. kind: fine → into the jar; bounty → the others pay this player; track → just counted.
 // "first" ones only count for the first player per round; later ones are logged at $0.
 const FINES={
-  gir:{kind:'bounty',label:'First green in regulation',icon:'🎯',first:true,kw:['green in regulation','green in reg','greens in regulation','gir','on in regulation','hit the green in regulation']},
-  lost:{kind:'track',label:'Lost ball / OB',icon:'🔍',kw:['lost ball','lost his ball','lost her ball','lost my ball','lost a ball','lost the ball','lost it','out of bounds','ob','o b','never found it','couldn\'t find it']},
-  pen:{kind:'track',label:'Penalty stroke',icon:'⚠️',kw:['penalty','penalty stroke','unplayable','took a drop','takes a drop']},
-  triplechip:{label:'First triple chip',icon:'🥄',first:true,kw:['triple chip','triple chipped','3 chip','3 chipped']},
-  cliche:{label:'Golf cliché',icon:'💬',kw:["you'll find it",'youll find it','you will find it',"that'll work",'thatll work','that will work','happy with that','see it bounce','saw it bounce','cliche','cliché']},
-  short:{label:"Short tee shot (didn't pass forward tees)",icon:'🎀',kw:['ladies','ladies tee','forward tee','forward tees','short drive','short tee','short tee shot','red tees','skirt']},
+  gir:{kind:'bounty',label:'First green in regulation',first:true,kw:['green in regulation','green in reg','greens in regulation','gir','on in regulation','hit the green in regulation']},
+  lost:{kind:'track',label:'Lost ball / OB',kw:['lost ball','lost his ball','lost her ball','lost my ball','lost a ball','lost the ball','lost it','out of bounds','ob','o b','never found it','couldn\'t find it']},
+  pen:{kind:'track',label:'Penalty stroke',kw:['penalty','penalty stroke','unplayable','took a drop','takes a drop']},
+  triplechip:{label:'First triple chip',first:true,kw:['triple chip','triple chipped','3 chip','3 chipped']},
+  cliche:{label:'Golf cliché',kw:["you'll find it",'youll find it','you will find it',"that'll work",'thatll work','that will work','happy with that','see it bounce','saw it bounce','cliche','cliché']},
+  short:{label:"Short tee shot (didn't pass forward tees)",kw:['ladies','ladies tee','forward tee','forward tees','short drive','short tee','short tee shot','red tees','skirt']},
   // keywords must not be ordinary golf talk: no bare "wood" (3 wood), "sand" (sand wedge), "water" (carried the water), "told"
-  tree:{label:'First tree strike',icon:'🌳',first:true,kw:['tree','trees','branch','branches','timber']},
-  bunker:{label:'First bunker',icon:'🏖️',first:true,kw:['bunker','in the sand','into the sand','found the sand','sand trap','trap','beach']},
-  cart:{label:'First cart-path bounce',icon:'🛣️',first:true,kw:['cart path','cart-path','cartpath','path','asphalt','pavement']},
-  water:{label:'First ball in water',icon:'💧',first:true,kw:['in the water','into the water','found the water','hit the water','went in the water','in the lake','in the pond','in the creek','in the river','splash','splashed','wet','water ball']},
-  tip:{label:'Unsolicited swing tip',icon:'🗣️',kw:['swing tip','tip','tips','tipped','lesson','swing advice','swing thought','keep your head down','keep his head down','keep her head down','head down','coached','coaching']},
-  other:{label:'Other fine',icon:'💲',kw:['fine','fined','swear','swore','cursed','cussed']},
+  tree:{label:'First tree strike',first:true,kw:['tree','trees','branch','branches','timber']},
+  bunker:{label:'First bunker',first:true,kw:['bunker','in the sand','into the sand','found the sand','sand trap','trap','beach']},
+  cart:{label:'First cart-path bounce',first:true,kw:['cart path','cart-path','cartpath','path','asphalt','pavement']},
+  water:{label:'First ball in water',first:true,kw:['in the water','into the water','found the water','hit the water','went in the water','in the lake','in the pond','in the creek','in the river','splash','splashed','wet','water ball']},
+  tip:{label:'Unsolicited swing tip',kw:['swing tip','tip','tips','tipped','lesson','swing advice','swing thought','keep your head down','keep his head down','keep her head down','head down','coached','coaching']},
+  other:{label:'Other fine',kw:['fine','fined','swear','swore','cursed','cussed']},
 };
 const FINE_ORDER=Object.keys(FINES);
 const BBB=['bingo','bango','bongo'];
@@ -257,6 +245,8 @@ const JAR_RULES={
   round:['Most holes won, paid at the end of the round','The jar keeps growing all round. When the last hole is in, whoever won the most holes outright (best score, no ties) takes it all. If that\'s a tie, it rolls over to the next round.'],
 };
 const fineKind=t=>(FINES[t]&&FINES[t].kind)||'fine';
+// unknown rule names (old or edited backups) behave as 'outright', same as compute() does
+const jarRule=r=>JAR_RULES[r.jarRule]||JAR_RULES.outright;
 const HELP={
   net9:s=>`Every 9 holes, each player goes head-to-head against each of the others using their score after handicap strokes. Win a head-to-head and that player pays you ${money(s)}. Tie and no money moves.`,
   ball:s=>`Everyone marks a ball on hole 1. Your ball is out the first time you log a Lost ball / OB. The last player still holding their marked ball collects ${money(s)} from each other player. If everyone loses theirs, whoever held out longest wins. If two or more still have theirs at the end of the round, they split it.`,
@@ -282,7 +272,7 @@ function mkRound(name,n,prev){
   const c=COURSES[name];if(c&&c.par.length===n)c.par.forEach((p,i)=>holes[i]={par:p,si:c.si[i]});
   return {id:uid(),name,date:new Date().toISOString().slice(0,10),holes,
     stakes:prev?{gir:1,ball:1,...prev.stakes}:{fine:1,net9:5,bbbPt:1,oneClub:5,gir:1,ball:1},
-    games:prev?{ball:true,...prev.games,oneClubHole:null}:{net9:true,bbb:true,ball:true,oneClubHole:null},
+    games:prev?{ball:true,gir:true,...prev.games,oneClubHole:null}:{net9:true,bbb:true,ball:true,gir:true,oneClubHole:null},
     jarRule:prev?prev.jarRule:'outright',scores:{},putts:{},bbb:[],cur:0};
 }
 function mkState(){
@@ -304,7 +294,7 @@ function save(){if(VIEW)return;try{localStorage.setItem(KEY,JSON.stringify(S))}c
 const round=()=>S.rounds.find(r=>r.id===S.cur)||S.rounds[0];
 // round shown on Board/Money (can be a past one); the round being played stays S.cur
 const viewRound=()=>S.rounds.find(r=>r.id===S.boardRound)||round();
-const pname=id=>id==='JAR'?'🫙 Jar':(S.players.find(p=>p.id===id)||{}).name||'?';
+const pname=id=>id==='JAR'?'Jar':(S.players.find(p=>p.id===id)||{}).name||'?';
 const sc=(r,p,i)=>(r.scores[p]||[])[i]??null;
 const pt=(r,p,i)=>(r.putts[p]||[])[i]??null;
 function setArr(obj,p,i,v,n){if(!obj[p])obj[p]=Array(n).fill(null);obj[p][i]=v}
@@ -321,9 +311,9 @@ function compute(){
     R[r.id]=X;
     P.forEach(p=>{X.recv[p]=Array(n).fill(0);X.fines[p]=0;X.bbb[p]=0;X.threePutts[p]=0;X.lost[p]=0;X.pen[p]=0;X.won[p]=0;X.tot[p]={gross:0,net:0,par:0,thru:0}});
     const evs=S.events.filter(e=>e.r===r.id).sort((a,b)=>a.h-b.h||a.t-b.t);
-    const gir=+(r.stakes.gir??1)||0;
+    const gir=r.games.gir===false?0:+(r.stakes.gir??1)||0;
     for(const e of evs){const f=FINES[e.type],k=fineKind(e.type);let a=k==='track'?0:k==='bounty'?gir:fine;
-      if(f&&f.first){if(X.firsts[e.type])a=0;else{X.firsts[e.type]=e.p;X.firstHole[e.type]=e.h}}amt.set(e.id,a)}
+      if(k==='bounty'&&!gir)a=0;else if(f&&f.first){if(X.firsts[e.type])a=0;else{X.firsts[e.type]=e.p;X.firstHole[e.type]=e.h}}amt.set(e.id,a)}
     for(let s=0;s*9<n;s++){
       const a=s*9,b=Math.min(n,a+9),idx=[];for(let i=a;i<b;i++)idx.push(i);
       const rank={};[...idx].sort((x,y)=>r.holes[x].si-r.holes[y].si).forEach((i,k)=>rank[i]=k+1);
@@ -391,9 +381,10 @@ function compute(){
       for(const e of evs)if(e.type==='lost'&&X.fines[e.p]!=null&&!out[e.p])out[e.p]={h:e.h,t:e.t};
       const alive=P.filter(p=>!out[p]);
       let w=null;
-      if(alive.length===1||(alive.length>1&&X.complete))w=alive;
+      // everyone kept their ball all round: nobody wins, nobody pays
+      if(alive.length===1||(alive.length>1&&alive.length<P.length&&X.complete))w=alive;
       else if(!alive.length){const last=P.reduce((a,p)=>!a||out[p].h>out[a].h||(out[p].h===out[a].h&&out[p].t>out[a].t)?p:a,null);w=[last]}
-      X.ball={out,alive,w};
+      X.ball={out,alive,w,noLoss:X.complete&&alive.length===P.length};
       const stake=+(r.stakes.ball??1)||0;
       if(w&&w.length<P.length&&stake>0)P.filter(p=>!w.includes(p)).forEach(l=>w.forEach(wp=>ledger.push({r:r.id,from:l,to:wp,amt:r2(stake/w.length),cat:'Longest ball'})));
     }
@@ -440,7 +431,6 @@ function render(){
   if(VIEW&&!['board','money','rules'].includes(S.tab))S.tab='board';
   const C=compute();
   $('#view').innerHTML=(VIEW?`<div id="viewbar" class="viewbar">${viewBar()}</div>`:'')+({home:vHome,hole:vHole,board:vBoard,money:vMoney,rules:vRules,setup:vSetup}[S.tab]||vHome)(C);
-  deco($('#view'));
   announceJar(C);
 }
 // shout when a jar payout appears that wasn't there before (first render just records what exists)
@@ -451,8 +441,8 @@ function announceJar(C){
   if(seenWins){
     const fresh=[...now].filter(([k])=>!seenWins.has(k)).map(([,w])=>w);
     if(fresh.length){const w=fresh[fresh.length-1];
-      const b=$('#banner');b.textContent=`🫙 ${pname(w.p)} wins the jar: ${money(w.amt)}!${w.end?' (most holes won)':` (hole ${w.h+1})`}`;
-      deco(b);b.hidden=false;clearTimeout(bannerT);bannerT=setTimeout(()=>b.hidden=true,5000);navigator.vibrate?.(120)}
+      const b=$('#banner');b.textContent=`${pname(w.p)} wins the jar: ${money(w.amt)}!${w.end?' (most holes won)':` (hole ${w.h+1})`}`;
+      b.hidden=false;clearTimeout(bannerT);bannerT=setTimeout(()=>b.hidden=true,5000);navigator.vibrate?.(120)}
   }
   seenWins=new Set(now.keys());
 }
@@ -463,28 +453,28 @@ function vHole(C){
   let o=`<div class="hh"><button class="nav" data-a="hole" data-d="-1" ${i?'':'disabled'}>‹</button>
     <div class="hc"><div class="hn">Hole ${i+1}</div><div class="hs">Par <b>${h.par}</b> · SI ${h.si} · ${esc(r.name)}</div></div>
     <button class="nav" data-a="hole" data-d="1" ${i<n-1?'':'disabled'}>›</button></div>
-    ${FB_CONFIG&&!S.share&&!hasData(r)?'<button class="big" style="background:var(--blue);margin:0 0 10px" data-a="shareLive">📤 Share live link with the group</button>':''}
-    <div class="pills"><span class="pill">🫙 Jar ${money(C.jar)}</span>${X.jarWins.filter(w=>w.h===i&&!w.end&&w.amt>0).map(w=>`<span class="pill">🏆 ${esc(pname(w.p))} won ${money(w.amt)} here</span>`).join('')}${isOC?'<span class="pill oc">One-club hole · 7-iron only</span>':''}${X.ball?`<span class="pill oc">⚪ ${X.ball.w?`Longest ball: ${esc(X.ball.w.map(pname).join(' & '))}`:`${L('Marked balls left: ','Balls in play ')}${X.ball.alive.length}`}</span>`:''}</div>`;
+    ${FB_CONFIG&&!S.share&&!hasData(r)?'<button class="big" style="background:var(--blue);margin:0 0 10px" data-a="shareLive">Share live link with the group</button>':''}
+    <div class="pills"><span class="pill">Jar ${money(C.jar)}</span>${X.jarWins.filter(w=>w.h===i&&!w.end&&w.amt>0).map(w=>`<span class="pill">${esc(pname(w.p))} won ${money(w.amt)} here</span>`).join('')}${isOC?'<span class="pill oc">One-club hole · 7-iron only</span>':''}${X.ball?`<span class="pill oc">${X.ball.noLoss?'Longest ball: nobody lost one':X.ball.w?`Longest ball: ${esc(X.ball.w.map(pname).join(' & '))}`:`Balls in play ${X.ball.alive.length}`}</span>`:''}</div>`;
   for(const p of S.players){
     const v=sc(r,p.id,i),pu=pt(r,p.id,i),recv=X.recv[p.id][i],T=X.tot[p.id];
     const fines=S.events.filter(e=>e.r===r.id&&e.h===i&&e.p===p.id);
     o+=`<div class="card pc"><div class="pt"><span class="nm">${esc(p.name)}</span><span class="dots" title="handicap strokes on this hole">${'●'.repeat(recv)}</span>
       <span class="meta">${T.thru?`net ${rel(T.net-T.par)} · thru ${T.thru}`:`hcp ${seg.hcp[p.id]}`}</span>
-      <button class="fb" data-a="fineSheet" data-p="${p.id}">＋ Log</button></div>
+      <button class="fb" data-a="fineSheet" data-p="${p.id}">+ Log</button></div>
       <div class="sr"><button class="stp" data-a="sc" data-p="${p.id}" data-d="-1" aria-label="score down">−</button>
       <button class="sv ${v==null?'empty':scoreCls(v-h.par)}" data-a="sc" data-p="${p.id}" data-d="0">${v??'–'}</button>
       <button class="stp" data-a="sc" data-p="${p.id}" data-d="1" aria-label="score up">+</button>
       <div class="pu"><span class="lab">putts</span><div>${[0,1,2,3,4].map(k=>`<button class="chip ${pu===k?'on':''}" data-a="pu" data-p="${p.id}" data-v="${k}">${k}${k===4?'+':''}</button>`).join('')}</div></div></div>
-      ${fines.length||pu>=3?`<div class="fl">${pu>=3?`<span class="ft auto">⛳ 3-putt ${money(+r.stakes.fine)}</span>`:''}${fines.map(e=>{const k=fineKind(e.type),a=C.amt.get(e.id)||0;
-        return `<button class="ft ${k}" data-a="delEv" data-id="${e.id}">${FINES[e.type]?.icon||'💲'} ${esc((FINES[e.type]?.label||e.type).replace('First ','').replace(/ \(.*\)/,'').replace(/^./,c=>c.toUpperCase()))}${k==='track'?'':k==='bounty'?(a?` +${money(a*(S.players.length-1))}`:' (not first)'):' '+money(a)} <b>✕</b></button>`}).join('')}</div>`:''}
+      ${fines.length||pu>=3?`<div class="fl">${pu>=3?`<span class="ft auto">3-putt ${money(+r.stakes.fine)}</span>`:''}${fines.map(e=>{const k=fineKind(e.type),a=C.amt.get(e.id)||0;
+        return `<button class="ft ${k}" data-a="delEv" data-id="${e.id}">${esc((FINES[e.type]?.label||e.type).replace('First ','').replace(/ \(.*\)/,'').replace(/^./,c=>c.toUpperCase()))}${k==='track'?'':k==='bounty'?(a?` +${money(a*(S.players.length-1))}`:' (not first)'):' '+money(a)} <b>✕</b></button>`}).join('')}</div>`:''}
     </div>`;
   }
   if(r.games.bbb){
     const bb=r.bbb[i]||{};
     o+=`<div class="card"><h3>Bingo Bango Bongo</h3>${BBB.map((k,ki)=>`<div class="bbr" style="--n:${S.players.length}"><span class="lab">${['On first','Closest','In first'][ki]}</span>${S.players.map(p=>`<button class="chip ${bb[k]===p.id?'on':''}" data-a="bbb" data-k="${k}" data-p="${p.id}">${esc(p.name.split(' ')[0])}</button>`).join('')}</div>`).join('')}</div>`;
   }
-  if(i<n-1)o+=`<button class="big" data-a="hole" data-d="1">${L('Next hole ›','Next hole')}</button>`;
-  else o+=`<button class="big" data-a="tab" data-t="money">${L('Round done → Settle up','Settle up')}</button>`;
+  if(i<n-1)o+=`<button class="big" data-a="hole" data-d="1">Next hole</button>`;
+  else o+=`<button class="big" data-a="tab" data-t="money">Settle up</button>`;
   return o;
 }
 function roundChips(sel,act){return `<div class="seg">${S.rounds.map(r=>`<button class="chip ${r.id===sel?'on':''}" data-a="${act}" data-id="${r.id}">${esc(r.name)}</button>`).join('')}</div>`}
@@ -511,23 +501,24 @@ function vBoard(C){
   X.segs.forEach((g,k)=>{
     o+=`<div class="card"><h3>${X.segs.length>1?(k?'Back 9':'Front 9'):'9 holes'} · ${g.complete?'final':'in progress'}</h3><table><tr><th>Player</th><th>Gross</th><th>Net</th><th>Hcp</th></tr>
     ${S.players.map(p=>{let pp=0;for(let i=g.a;i<g.b;i++)if(sc(r,p.id,i)!=null)pp+=r.holes[i].par;return `<tr><td>${esc(p.name)}</td><td>${g.gross[p.id]||'—'}</td><td>${g.gross[p.id]?g.net[p.id]+' <span class="mut sm">'+rel(g.net[p.id]-pp)+'</span>':'—'}</td><td>${g.complete?`${g.hcp[p.id]} → <b>${g.after[p.id]}</b>`:g.hcp[p.id]}</td></tr>`}).join('')}</table>
-    ${r.games.net9?`<div class="sm mut help" style="margin-top:6px"><b>Net 9 match:</b> ${HELP.net9(+r.stakes.net9)}</div>`:''}</div>`;
+    ${r.games.net9?``:''}</div>`;
   });
-  if(r.games.bbb)o+=`<div class="card"><h3>Bingo Bango Bongo</h3><div class="sm mut help" style="margin-bottom:6px">${HELP.bbb(+r.stakes.bbbPt)}</div><table><tr><th>Player</th><th>Points</th></tr>${[...S.players].sort((a,b)=>X.bbb[b.id]-X.bbb[a.id]).map(p=>`<tr><td>${esc(p.name)}</td><td><b>${X.bbb[p.id]}</b></td></tr>`).join('')}</table></div>`;
+  if(r.games.bbb)o+=`<div class="card"><h3>Bingo Bango Bongo</h3><table><tr><th>Player</th><th>Points</th></tr>${[...S.players].sort((a,b)=>X.bbb[b.id]-X.bbb[a.id]).map(p=>`<tr><td>${esc(p.name)}</td><td><b>${X.bbb[p.id]}</b></td></tr>`).join('')}</table></div>`;
   if(X.ball){const B=X.ball;
-    o+=`<div class="card"><h3>Longest ball · last man standing</h3><div class="sm mut help" style="margin-bottom:6px">${HELP.ball(+(r.stakes.ball??1))}</div>
-    <table><tr><th>Player</th><th>Marked ball</th></tr>${S.players.map(p=>`<tr><td>${B.w&&B.w.includes(p.id)?'🏆 ':''}${esc(p.name)}</td><td>${B.out[p.id]?`lost on hole ${B.out[p.id].h+1}`:'<b>still in play</b>'}</td></tr>`).join('')}</table>
-    ${B.w?`<div class="sm" style="margin-top:6px">Winner${B.w.length>1?'s (split)':''}: <b>${esc(B.w.map(pname).join(' & '))}</b></div>`:''}</div>`}
+    o+=`<div class="card"><h3>Longest ball · last man standing</h3>
+    <table><tr><th>Player</th><th>Marked ball</th></tr>${S.players.map(p=>`<tr><td>${B.w&&B.w.includes(p.id)?'':''}${esc(p.name)}</td><td>${B.out[p.id]?`lost on hole ${B.out[p.id].h+1}`:'<b>still in play</b>'}</td></tr>`).join('')}</table>
+    ${B.noLoss?'<div class="sm" style="margin-top:6px">Nobody lost a ball, so no money moves.</div>':''}${B.w?`<div class="sm" style="margin-top:6px">Winner${B.w.length>1?'s (split)':''}: <b>${esc(B.w.map(pname).join(' & '))}</b></div>`:''}</div>`}
   const oh=r.games.oneClubHole;
   if(oh!=null&&oh!=='')o+=`<div class="card"><h3>One-club challenge · hole ${+oh+1}</h3>${X.oneClub?`${X.oneClub.w.length===S.players.length?'All tied, no money moves':'Winner'+(X.oneClub.w.length>1?'s (split)':'')+': <b>'+X.oneClub.w.map(pname).map(esc).join(', ')+'</b>'} with ${X.oneClub.score}`:'<span class="mut">Waiting for all scores on that hole.</span>'}</div>`;
-  o+=`<div class="card"><h3>Unbroken String · whole trip</h3><div class="sm mut help" style="margin-bottom:6px">Longest run of holes, across the whole trip, without a double bogey or worse${S.trip.stringNet?', counted after handicap strokes':' (actual strokes, no handicap)'}.</div><table><tr><th>Player</th><th>Current</th><th>Best</th></tr>
-  ${[...S.players].sort((a,b)=>C.str[b.id].best-C.str[a.id].best).map(p=>`<tr><td>${C.leaders.includes(p.id)?'🏆 ':''}${esc(p.name)}</td><td>${C.str[p.id].cur}</td><td><b>${C.str[p.id].best}</b></td></tr>`).join('')}</table></div>`;
-  o+=`<div class="card"><h3>Swear jar</h3><div class="jarbig">${money(C.jar)}</div><div class="sm mut help">Every fine goes in the jar. ${(JAR_RULES[r.jarRule]||JAR_RULES.outright)[1]}</div>
+  o+=`<div class="card"><h3>Unbroken String · whole trip</h3><table><tr><th>Player</th><th>Current</th><th>Best</th></tr>
+  ${[...S.players].sort((a,b)=>C.str[b.id].best-C.str[a.id].best).map(p=>`<tr><td>${C.leaders.includes(p.id)?'':''}${esc(p.name)}</td><td>${C.str[p.id].cur}</td><td><b>${C.str[p.id].best}</b></td></tr>`).join('')}</table></div>`;
+  o+=`<div class="card"><h3>Swear jar</h3><div class="jarbig">${money(C.jar)}</div>
   <table style="margin-top:8px"><tr><th>Player</th><th>Holes won</th><th>3-putts</th><th>Fines</th></tr>${S.players.map(p=>`<tr><td>${esc(p.name)}</td><td>${X.won[p.id]}</td><td>${X.threePutts[p.id]}</td><td>${money(X.fines[p.id])}</td></tr>`).join('')}</table>
   ${X.jarWins.length?`<div style="margin-top:8px">${X.jarWins.map(w=>`<div class="sm">${w.end?'End of round':'Hole '+(w.h+1)}: <b>${esc(pname(w.p))}</b> won ${w.amt?money(w.amt):'(jar was empty)'}</div>`).join('')}</div>`:''}</div>`;
   const gp=X.firsts.gir;
-  o+=`<div class="card"><h3>Balls, penalties & first GIR</h3><table><tr><th>Player</th><th>Lost / OB</th><th>Penalties</th></tr>${S.players.map(p=>`<tr><td>${esc(p.name)}</td><td>${X.lost[p.id]}</td><td>${X.pen[p.id]}</td></tr>`).join('')}</table>
-  <div class="sm mut" style="margin-top:6px">${gp?`🎯 First green in regulation: <b>${esc(pname(gp))}</b> on hole ${X.firstHole.gir+1}<span class="help">, collects ${money(+(r.stakes.gir??1))} from each player</span>.`:`🎯 First green in regulation: nobody yet<span class="help">. Worth ${money(+(r.stakes.gir??1))} from each player</span>.`}<span class="help"> Lost balls and penalties are tracked only, no money. Include penalty strokes in the hole score.</span></div></div>`;
+  const girOn=r.games.gir!==false;
+  o+=`<div class="card"><h3>Balls, penalties${girOn?' & first GIR':''}</h3><table><tr><th>Player</th><th>Lost / OB</th><th>Penalties</th></tr>${S.players.map(p=>`<tr><td>${esc(p.name)}</td><td>${X.lost[p.id]}</td><td>${X.pen[p.id]}</td></tr>`).join('')}</table>
+  ${girOn?`<div class="sm mut" style="margin-top:6px">${gp?`First green in regulation: <b>${esc(pname(gp))}</b> on hole ${X.firstHole.gir+1}.`:`First green in regulation: nobody yet.`}</div>`:''}</div>`;
   return o;
 }
 // the bet sheet: every game, fine and rule, with this round's actual amounts and on/off state
@@ -535,29 +526,29 @@ function vRules(){
   const r=viewRound(),st=r.stakes,g=r.games,f=+st.fine||0,n=S.players.length-1;
   const on=(b,amt)=>b?`<span class="pill" style="background:var(--gl);color:var(--g)">On${amt!=null?' · '+amt:''}</span>`:'<span class="pill" style="background:var(--bg);color:var(--mut)">Off this round</span>';
   const oh=g.oneClubHole!=null&&g.oneClubHole!=='';
-  const sec=(id,icon,title,badge,body)=>`<div class="card" id="rule-${id}"><div class="row" style="justify-content:space-between;margin-bottom:6px"><h3 style="margin:0">${icon} ${title}</h3>${badge||''}</div><div class="rules">${body}</div></div>`;
+  const sec=(id,title,badge,body)=>`<div class="card" id="rule-${id}"><div class="row" style="justify-content:space-between;margin-bottom:6px"><h3 style="margin:0">${title}</h3>${badge||''}</div><div class="rules">${body}</div></div>`;
   const fineRows=FINE_ORDER.filter(k=>fineKind(k)==='fine').map(k=>{const x=FINES[k];
-    return `<tr><td>${x.icon} ${esc(x.label.replace(/^First /,'').replace(/^./,c=>c.toUpperCase()))}</td><td>${x.first?'first one each round':'every time'}</td><td>${money(f)}</td></tr>`}).join('');
+    return `<tr><td>${esc(x.label.replace(/^First /,'').replace(/^./,c=>c.toUpperCase()))}</td><td>${x.first?'first one each round':'every time'}</td><td>${money(f)}</td></tr>`}).join('');
   const toc=[['scoring','Scoring & handicaps'],['jar','Swear jar'],['net9','Net 9 match'],['bbb','Bingo Bango Bongo'],['ball','Longest ball'],['gir','First GIR'],['oneclub','One-club challenge'],['string','Unbroken String'],['tracking','Lost balls & penalties'],['settle','Settling up']];
   return `${VIEW?'<h2>Bet sheet</h2>':'<div class="row" style="margin-bottom:4px"><button class="btn" data-a="tab" data-t="home">‹ Home</button><h2 style="margin:0">Bet sheet</h2></div>'}${S.rounds.length>1?roundChips(r.id,'boardRound'):''}
-  <div class="sm mut help" style="margin-bottom:8px">Amounts and on/off are for <b>${esc(r.name)}</b>. Tap a bet to jump to it.</div>
+  
   <div class="card"><div class="toc">${toc.map(([id,t],i)=>`<button class="chip" data-a="jump" data-id="rule-${id}">${i+1}. ${t}</button>`).join('')}</div></div>
-  ${sec('scoring','⛳','Scoring & handicaps','',`
+  ${sec('scoring','Scoring & handicaps','',`
     <p>Everyone's real score goes on the card. Your <b>handicap is strokes per 9 holes</b> (about half your 18-hole handicap), given on the hardest holes of each nine by the card's stroke index (the dots next to your name on the Hole screen). Score minus strokes = your <b>net</b> score.</p>
     <p>After every 9 holes your handicap is recalculated, and it <b>only goes down</b>. Beat your net par by X strokes and it drops by X × ${S.hrule.down} (rounded to 0.1). A bad nine never raises it.</p>`)}
-  ${sec('jar','🫙','Swear jar','<span class="pill">'+money(f)+' per fine</span>',`
+  ${sec('jar','Swear jar','<span class="pill">'+money(f)+' per fine</span>',`
     <p>Fines go into a shared jar. It carries over between rounds until someone wins it.</p>
-    <table><tr><th>Fine</th><th>When</th><th>$</th></tr>${fineRows}<tr><td>⛳ 3-putt</td><td>every time (automatic from putts)</td><td>${money(f)}</td></tr></table>
+    <table><tr><th>Fine</th><th>When</th><th>$</th></tr>${fineRows}<tr><td>3-putt</td><td>every time (automatic from putts)</td><td>${money(f)}</td></tr></table>
     <p class="sm mut">"First one each round" fines only cost the first player who does it each round. Later ones are logged but cost $0. The clichés are: "You'll find it", "That'll work", "Happy with that", "I didn't see it bounce". A short tee shot is a drive that doesn't pass the forward tees.</p>
-    <p><b>Who wins the jar this round:</b> ${esc(JAR_RULES[r.jarRule||'outright'][0])}. ${esc(JAR_RULES[r.jarRule||'outright'][1])}</p>`)}
-  ${sec('net9','🤝','Net 9 match',on(g.net9,money(+st.net9)),`<p>${HELP.net9(+st.net9)}</p><p class="sm mut">An 18-hole round has two separate matches: front 9 and back 9.</p>`)}
-  ${sec('bbb','🎯','Bingo Bango Bongo',on(g.bbb,money(+st.bbbPt)+' / point'),`<p>${HELP.bbb(+st.bbbPt)}</p>`)}
-  ${sec('ball','⚪','Longest ball (last man standing)',on(g.ball,money(+(st.ball??1))),`<p>${HELP.ball(+(st.ball??1))}</p><p class="sm mut">With ${n+1} players, the winner collects ${money(+(st.ball??1)*n)}.</p>`)}
-  ${sec('gir','🟢','First green in regulation',on(true,money(+(st.gir??1))),`<p>The first player each round to reach a green in regulation (on in 1 on a par 3, in 2 on a par 4, in 3 on a par 5) collects ${money(+(st.gir??1))} from each other player, ${money(+(st.gir??1)*n)} total.</p>`)}
-  ${sec('oneclub','🏌️','One-club challenge',on(oh,oh?'hole '+(+g.oneClubHole+1)+' · '+money(+st.oneClub):null),`<p>On the chosen hole, everyone plays tee to green <b>and putts</b> with only a 7-iron. Lowest score wins ${money(+st.oneClub)} from each other player. Tied winners split it, and if everyone ties nobody pays.</p>`)}
-  ${sec('string','🧵','Unbroken String (whole trip)',on(+S.trip.stringStake>0,money(+S.trip.stringStake)),`<p>Across every round of the trip: the longest run of holes in a row without a double bogey or worse${S.trip.stringNet?', counted <b>after your handicap strokes</b> (a net double breaks it)':', counted on actual strokes'}. At the end of the trip, the leader collects ${money(+S.trip.stringStake)} from each other player. Tied leaders split it.</p>`)}
-  ${sec('tracking','🔍','Lost balls & penalties','',`<p>Lost balls / OB and penalty strokes are counted on the Board. They don't cost money by themselves, but a lost ball ends your run in <b>Longest ball</b>. Include penalty strokes in your hole score.</p>`)}
-  ${sec('settle','💵','Settling up','',`<p>Every game is netted into one short list of who pays whom (Money tab), per round or for the whole trip. Fines are paid to the jar, and the jar pays out to its winner. Money still in the jar at the end stays in the pot.</p>`)}`;
+    <p><b>Who wins the jar this round:</b> ${esc(jarRule(r)[0])}. ${esc(jarRule(r)[1])}</p>`)}
+  ${sec('net9','Net 9 match',on(g.net9,money(+st.net9)),`<p>${HELP.net9(+st.net9)}</p><p class="sm mut">An 18-hole round has two separate matches: front 9 and back 9.</p>`)}
+  ${sec('bbb','Bingo Bango Bongo',on(g.bbb,money(+st.bbbPt)+' / point'),`<p>${HELP.bbb(+st.bbbPt)}</p>`)}
+  ${sec('ball','Longest ball (last man standing)',on(g.ball,money(+(st.ball??1))),`<p>${HELP.ball(+(st.ball??1))}</p><p class="sm mut">With ${n+1} players, the winner collects ${money(+(st.ball??1)*n)}.</p>`)}
+  ${sec('gir','First green in regulation',on(g.gir!==false,money(+(st.gir??1))),`<p>The first player each round to reach a green in regulation (on in 1 on a par 3, in 2 on a par 4, in 3 on a par 5) collects ${money(+(st.gir??1))} from each other player, ${money(+(st.gir??1)*n)} total.</p>`)}
+  ${sec('oneclub','One-club challenge',on(oh,oh?'hole '+(+g.oneClubHole+1)+' · '+money(+st.oneClub):null),`<p>On the chosen hole, everyone plays tee to green <b>and putts</b> with only a 7-iron. Lowest score wins ${money(+st.oneClub)} from each other player. Tied winners split it, and if everyone ties nobody pays.</p>`)}
+  ${sec('string','Unbroken String (whole trip)',on(+S.trip.stringStake>0,money(+S.trip.stringStake)),`<p>Across every round of the trip: the longest run of holes in a row without a double bogey or worse${S.trip.stringNet?', counted <b>after your handicap strokes</b> (a net double breaks it)':', counted on actual strokes'}. At the end of the trip, the leader collects ${money(+S.trip.stringStake)} from each other player. Tied leaders split it.</p>`)}
+  ${sec('tracking','Lost balls & penalties','',`<p>Lost balls / OB and penalty strokes are counted on the Board. They don't cost money by themselves, but a lost ball ends your run in <b>Longest ball</b>. Include penalty strokes in your hole score.</p>`)}
+  ${sec('settle','Settling up','',`<p>Every game is netted into one short list of who pays whom (Money tab), per round or for the whole trip. Fines are paid to the jar, and the jar pays out to its winner. Money still in the jar at the end stays in the pot.</p>`)}`;
 }
 function vMoney(C){
   const scope=S.moneyScope||'round',r=viewRound();
@@ -567,8 +558,8 @@ function vMoney(C){
   let o=`<h2>Settle up</h2><div class="seg"><button class="chip ${scope==='round'?'on':''}" data-a="scope" data-v="round">One round</button><button class="chip ${scope==='trip'?'on':''}" data-a="scope" data-v="trip">All rounds</button></div>
   ${scope==='round'&&S.rounds.length>1?roundChips(r.id,'boardRound'):''}
   <div class="card"><h3>Who pays whom</h3>${tx.length?tx.map(t=>`<div class="tx"><b>${esc(pname(t.from))}</b> → <b>${esc(pname(t.to))}</b><span class="amt">${money(t.amt)}</span></div>`).join(''):'<div class="mut">All square so far.</div>'}
-  ${tx.some(t=>t.to==='JAR')?'<div class="sm mut help" style="margin-top:6px">Money to the jar stays in the pot until someone wins it.</div>':''}
-  ${scope==='trip'&&C.leaders.length?'<div class="sm mut help" style="margin-top:6px">Includes Unbroken String for the current leader. Final once the trip is over.</div>':''}</div>
+  ${tx.some(t=>t.to==='JAR')?'':''}
+  ${scope==='trip'&&C.leaders.length?'':''}</div>
   <div class="card"><h3>Net by game</h3><table class="money"><tr><th>Game</th>${S.players.map(p=>`<th>${esc(p.name.split(' ')[0])}</th>`).join('')}</tr>
   ${cats.map(c=>{const b={};led.filter(l=>l.cat===c).forEach(l=>{b[l.from]=(b[l.from]||0)-l.amt;b[l.to]=(b[l.to]||0)+l.amt});return `<tr><td>${esc(c)}</td>${S.players.map(p=>{const v=r2(b[p.id]||0);return `<td class="${v>0?'pos':v<0?'neg':''}">${v?money(v):'·'}</td>`}).join('')}</tr>`}).join('')}
   <tr><td><b>Total</b></td>${S.players.map(p=>{const v=bal[p.id]||0;return `<td class="${v>0?'pos':v<0?'neg':''}"><b>${money(v)}</b></td>`}).join('')}</tr></table></div>
@@ -580,13 +571,13 @@ const hasData=r=>Object.values(r.scores).some(a=>a.some(v=>v!=null))||S.events.s
 function mkDraft(){
   const r=round();
   return {course:COURSES[r.name]?r.name:'East Potomac – White',custom:'',holes:9,
-    stakes:{ball:1,...r.stakes},games:{net9:r.games.net9,bbb:r.games.bbb,ball:r.games.ball??true,oneClubHole:null},jarRule:r.jarRule};
+    stakes:{ball:1,...r.stakes},games:{net9:r.games.net9,bbb:r.games.bbb,ball:r.games.ball??true,gir:r.games.gir??true,oneClubHole:null},jarRule:r.jarRule};
 }
 function liveBlock(){
   if(!FB_CONFIG)return'';
   return S.share
-    ?`<div class="live mut" id="livestat">${liveStatus()}</div><button class="btn" style="width:100%;margin-top:4px" data-a="shareLive">${L('📤 Send the live link again','Resend live link')}</button>`
-    :`<button class="big" style="background:var(--blue);margin-top:8px" data-a="shareLive">${L('📤 Share live link with the group','Share live link')}</button><div class="sm mut help" style="margin-top:4px">They see scores, the jar and the money live, read-only, with no app needed.</div>`;
+    ?`<div class="live ${liveCls()}" id="livestat">${liveStatus()}</div><button class="btn" style="width:100%;margin-top:4px" data-a="shareLive">Resend live link</button>`
+    :`<button class="big" style="background:var(--blue);margin-top:8px" data-a="shareLive">Share live link</button>`;
 }
 function vHome(C){
   const r=round(),X=C.R[r.id],started=hasData(r),anyData=S.rounds.some(hasData);
@@ -594,30 +585,30 @@ function vHome(C){
   const D=S.draft,cn=COURSES[D.course]?COURSES[D.course].par.length:+D.holes;
   const thru=Math.max(0,...S.players.map(p=>X.tot[p.id].thru));
   const num=(path,val)=>`<input type="number" inputmode="decimal" step="0.5" data-set="${path}" data-ty="num" value="${esc(val)}">`;
-  let o=`<div class="row" style="justify-content:space-between;margin-bottom:6px"><h2 style="margin:0">⛳ Golf Bets</h2><div class="row" style="gap:6px"><button class="btn" data-a="tab" data-t="rules">📖 Rules</button><button class="btn" data-a="tab" data-t="setup">⚙️ Settings</button></div></div>`;
+  let o=`<div class="row" style="justify-content:space-between;margin-bottom:6px"><h2 style="margin:0">Golf Bets</h2><div class="row" style="gap:6px"><button class="btn" data-a="tab" data-t="rules">Rules</button><button class="btn" data-a="tab" data-t="setup">Settings</button></div></div>`;
   if(started)o+=`<div class="card"><h3>Round in progress</h3><div style="font-size:19px;font-weight:800">${esc(r.name)}</div>
     <div class="mut sm">Thru ${thru} of ${r.holes.length} · Jar ${money(C.jar)}</div>
-    <button class="big" data-a="tab" data-t="hole">${L(`Continue on hole ${r.cur+1} ›`,`Continue · hole ${r.cur+1}`)}</button>${liveBlock()}</div>`;
-  o+=`<${started?'details':'div'} class="card" ${started&&S.draftOpen?'open':''} data-tog="draftOpen">${started?'<summary><b>＋ Start the next round</b></summary>':'<h3>Start a round</h3>'}
-  <div class="step">${L('1 · Course','Course')}</div>
+    <button class="big" data-a="tab" data-t="hole">Continue · hole ${r.cur+1}</button>${liveBlock()}</div>`;
+  o+=`<${started?'details':'div'} class="card" ${started&&S.draftOpen?'open':''} data-tog="draftOpen">${started?'<summary><b>+ Start the next round</b></summary>':'<h3>Start a round</h3>'}
+  <div class="step">Course</div>
   <select data-set="draft.course" style="width:100%"><option value="" ${D.course?'':'selected'}>Other course…</option>${Object.keys(COURSES).map(k=>`<option value="${esc(k)}" ${D.course===k?'selected':''}>${esc(k)} · par ${COURSES[k].par.reduce((a,b)=>a+b,0)}</option>`).join('')}</select>
-  ${D.course?'':`<div class="row" style="margin-top:6px"><input type="text" data-set="draft.custom" value="${esc(D.custom)}" placeholder="Course name" style="flex:1"><select data-set="draft.holes" data-ty="num"><option ${+D.holes===9?'selected':''}>9</option><option ${+D.holes===18?'selected':''}>18</option></select></div><div class="sm mut help">Pars default to 4. Fix them in Settings → Scorecard.</div>`}
-  <div class="step">${L('2 · Players & handicaps','Players · strokes per 9')}</div>
+  ${D.course?'':`<div class="row" style="margin-top:6px"><input type="text" data-set="draft.custom" value="${esc(D.custom)}" placeholder="Course name" style="flex:1"><select data-set="draft.holes" data-ty="num"><option ${+D.holes===9?'selected':''}>9</option><option ${+D.holes===18?'selected':''}>18</option></select></div><div class="sm neg">Placeholder pars. Set the real card in Settings → Scorecard.</div>`}
+  <div class="step">Players · strokes per 9</div>
   ${anyData
-    ?`${S.players.map(p=>`<div class="tx" style="font-size:16px;padding:6px 0"><b>${esc(p.name)}</b><span class="amt">hcp ${C.hc[p.id]}</span></div>`).join('')}<div class="sm mut help">Handicaps update on their own after every 9 holes.</div>`
-    :`<div class="sm mut help" style="margin-bottom:6px">Handicap = strokes per 9 holes (about half your 18-hole handicap).</div>${S.players.map((p,k)=>`<div class="row" style="margin-bottom:6px"><input type="text" data-set="players.${k}.name" value="${esc(p.name)}" style="flex:1"><input type="number" step="0.5" inputmode="decimal" data-set="players.${k}.hcp" data-ty="num" value="${p.hcp}"></div>`).join('')}`}
-  <div class="step">${L('3 · Games & stakes','Games')}</div>
-  <label class="f"><span>${L('Swear jar fine','Fine')}</span>$ ${num('draft.stakes.fine',D.stakes.fine)}</label>
-  <label class="f"><input type="checkbox" data-set="draft.games.net9" data-ty="bool" ${D.games.net9?'checked':''}><span>${L('Net 9 matches, per head-to-head','Net 9 match')}</span>$ ${num('draft.stakes.net9',D.stakes.net9)}</label>
-  <label class="f"><input type="checkbox" data-set="draft.games.bbb" data-ty="bool" ${D.games.bbb?'checked':''}><span>${L('Bingo Bango Bongo, per point','Bingo Bango Bongo / pt')}</span>$ ${num('draft.stakes.bbbPt',D.stakes.bbbPt)}</label>
-  <label class="f"><input type="checkbox" data-set="draft.games.ball" data-ty="bool" ${D.games.ball!==false?'checked':''}><span>${L('Longest ball (mark on hole 1), each pays the last one standing','Longest ball')}</span>$ ${num('draft.stakes.ball',D.stakes.ball??1)}</label>
-  <label class="f"><span>${L('First green in regulation, each pays','First GIR')}</span>$ ${num('draft.stakes.gir',D.stakes.gir??1)}</label>
-  <label class="f"><span>${L('One-club (7-iron) hole','One-club hole')}</span><select data-set="draft.games.oneClubHole" data-ty="numOrNull"><option value="">None</option>${Array.from({length:cn},(_,i)=>`<option value="${i}" ${D.games.oneClubHole===i?'selected':''}>Hole ${i+1}</option>`).join('')}</select></label>
-  ${D.games.oneClubHole!=null?`<label class="f"><span>${L('One-club: each loser pays winner','One-club stake')}</span>$ ${num('draft.stakes.oneClub',D.stakes.oneClub)}</label>`:''}
-  <div style="margin-top:6px"><b>${L('Who wins the jar','Jar goes to')}</b></div><select data-set="draft.jarRule" style="width:100%;margin:6px 0">${Object.entries(JAR_RULES).map(([v,[l]])=>`<option value="${v}" ${D.jarRule===v?'selected':''}>${l}</option>`).join('')}</select>
-  <div class="sm mut help">${(JAR_RULES[D.jarRule]||JAR_RULES.outright)[1]}</div>
-  <button class="big" data-a="teeOff" style="margin-top:12px">${L('Tee off ›','Tee off')}</button>
-  <div class="sm mut help" style="margin-top:6px">Rules for each game are under Settings and on the Board tab.</div></${started?'details':'div'}>`;
+    ?`${S.players.map(p=>`<div class="tx" style="font-size:16px;padding:6px 0"><b>${esc(p.name)}</b><span class="amt">hcp ${C.hc[p.id]}</span></div>`).join('')}`
+    :`${S.players.map((p,k)=>`<div class="row" style="margin-bottom:6px"><input type="text" data-set="players.${k}.name" value="${esc(p.name)}" style="flex:1"><input type="number" step="0.5" inputmode="decimal" data-set="players.${k}.hcp" data-ty="num" value="${p.hcp}"></div>`).join('')}`}
+  <div class="step">Games</div>
+  <label class="f"><span>Fine</span>$ ${num('draft.stakes.fine',D.stakes.fine)}</label>
+  <label class="f"><input type="checkbox" data-set="draft.games.net9" data-ty="bool" ${D.games.net9?'checked':''}><span>Net 9 match</span>$ ${num('draft.stakes.net9',D.stakes.net9)}</label>
+  <label class="f"><input type="checkbox" data-set="draft.games.bbb" data-ty="bool" ${D.games.bbb?'checked':''}><span>Bingo Bango Bongo / pt</span>$ ${num('draft.stakes.bbbPt',D.stakes.bbbPt)}</label>
+  <label class="f"><input type="checkbox" data-set="draft.games.ball" data-ty="bool" ${D.games.ball!==false?'checked':''}><span>Longest ball</span>$ ${num('draft.stakes.ball',D.stakes.ball??1)}</label>
+  <label class="f"><input type="checkbox" data-set="draft.games.gir" data-ty="bool" ${D.games.gir!==false?'checked':''}><span>First GIR</span>$ ${num('draft.stakes.gir',D.stakes.gir??1)}</label>
+  <label class="f"><span>One-club hole</span><select data-set="draft.games.oneClubHole" data-ty="numOrNull"><option value="">None</option>${Array.from({length:cn},(_,i)=>`<option value="${i}" ${D.games.oneClubHole===i?'selected':''}>Hole ${i+1}</option>`).join('')}</select></label>
+  ${D.games.oneClubHole!=null?`<label class="f"><span>One-club stake</span>$ ${num('draft.stakes.oneClub',D.stakes.oneClub)}</label>`:''}
+  <div style="margin-top:6px"><b>Jar goes to</b></div><select data-set="draft.jarRule" style="width:100%;margin:6px 0">${Object.entries(JAR_RULES).map(([v,[l]])=>`<option value="${v}" ${D.jarRule===v?'selected':''}>${l}</option>`).join('')}</select>
+  
+  <button class="big" data-a="teeOff" style="margin-top:12px">Tee off</button>
+  </${started?'details':'div'}>`;
   const played=S.rounds.filter(hasData).reverse();
   if(played.length){
     o+=`<div class="card"><h3>Rounds</h3>${played.map(x=>{
@@ -635,15 +626,14 @@ function vSetup(){
   const r=round(),n=r.holes.length;
   const num=(path,val,step)=>`<input type="number" inputmode="decimal" step="${step||1}" data-set="${path}" data-ty="num" value="${esc(val)}">`;
   return `<div class="row" style="margin-bottom:4px"><button class="btn" data-a="tab" data-t="home">‹ Home</button><h2 style="margin:0">Settings</h2></div>
-  <div class="card"><h3>Design</h3><div class="seg" style="margin:0">${[['classic','Classic'],['clean','Clean']].map(([v,l])=>`<button class="chip ${SKIN===v?'on':''}" data-a="skin" data-v="${v}">${l}</button>`).join('')}</div></div>
-  <div class="card"><h3>Players</h3><div class="sm mut help" style="margin-bottom:8px">Handicap = strokes per 9 holes (≈ half your 18-hole course handicap). Nicknames help the mic, e.g. "Brian, Rye".</div>
+  <div class="card"><h3>Players</h3>
   <div class="prow sm mut"><span>Name</span><span>Mic nicknames</span><span>Hcp/9</span></div>
   ${S.players.map((p,k)=>`<div class="prow"><input type="text" data-set="players.${k}.name" value="${esc(p.name)}"><input type="text" data-set="players.${k}.aliases" value="${esc(p.aliases)}" placeholder="optional"><input type="number" step="0.5" inputmode="decimal" data-set="players.${k}.hcp" data-ty="num" value="${p.hcp}"></div>`).join('')}
   <label class="f"><span>Who is "me" / "I" on the mic</span><select data-set="meId">${S.players.map(p=>`<option value="${p.id}" ${S.meId===p.id?'selected':''}>${esc(p.name)}</option>`).join('')}</select></label>
-  <div class="sm mut help">Starting handicaps only. The current one updates on its own after each 9.</div></div>
+  </div>
 
-  <div class="card"><h3>Rounds</h3><div class="sm mut help" style="margin-bottom:6px">Tap a round to view or edit it below.</div>${roundChips(r.id,'pickRound')}
-  <button class="btn" data-a="tab" data-t="home">＋ Start a new round (Home)</button></div>
+  <div class="card"><h3>Rounds</h3>${roundChips(r.id,'pickRound')}
+  <button class="btn" data-a="tab" data-t="home">+ Start a new round (Home)</button></div>
 
   <div class="card"><h3>This round: ${esc(r.name)}</h3>
   <label class="f"><span>Course name</span><input type="text" data-set="R.name" value="${esc(r.name)}"></label>
@@ -654,13 +644,14 @@ function vSetup(){
   <label class="f"><span>BBB, per point difference ($)</span>${num('R.stakes.bbbPt',r.stakes.bbbPt,0.5)}</label>
   <label class="f"><span>One-club (7-iron) hole</span><select data-set="R.games.oneClubHole" data-ty="numOrNull"><option value="">None</option>${r.holes.map((h,i)=>`<option value="${i}" ${+r.games.oneClubHole===i&&r.games.oneClubHole!==null&&r.games.oneClubHole!==''?'selected':''}>Hole ${i+1} (par ${h.par})</option>`).join('')}</select></label>
   <label class="f"><span>One-club: each loser pays winner ($)</span>${num('R.stakes.oneClub',r.stakes.oneClub,0.5)}</label>
+  <label class="f"><span>Play First GIR</span><input type="checkbox" data-set="R.games.gir" data-ty="bool" ${r.games.gir!==false?'checked':''}></label>
   <label class="f"><span>First green in regulation: each player pays ($)</span>${num('R.stakes.gir',r.stakes.gir??1,0.5)}</label>
   <label class="f"><span>Play Longest ball (last marked ball standing)</span><input type="checkbox" data-set="R.games.ball" data-ty="bool" ${r.games.ball?'checked':''}></label>
   <label class="f"><span>Longest ball: each player pays the winner ($)</span>${num('R.stakes.ball',r.stakes.ball??1,0.5)}</label>
   <div style="margin-top:10px"><b>Who wins the jar</b></div><select data-set="R.jarRule" style="width:100%;margin:6px 0">${Object.entries(JAR_RULES).map(([v,[l]])=>`<option value="${v}" ${r.jarRule===v?'selected':''}>${l}</option>`).join('')}</select>
-  <div class="sm mut help">${(JAR_RULES[r.jarRule]||JAR_RULES.outright)[1]}</div>
-  <details class="sm help" style="margin-top:10px"><summary><b>How Net 9, BBB and Longest ball work</b></summary><p class="mut"><b>Longest ball:</b> ${HELP.ball(+(r.stakes.ball??1))}</p><p class="mut"><b>Net 9:</b> ${HELP.net9(+r.stakes.net9)}</p><p class="mut"><b>Bingo Bango Bongo:</b> ${HELP.bbb(+r.stakes.bbbPt)}</p></details>
-  <h3 style="margin-top:12px">Scorecard</h3><div class="sm mut help" style="margin-bottom:6px">SI = hole handicap from the card (1 = hardest). Strokes go to the hardest holes of each 9.</div>
+  
+  
+  <h3 style="margin-top:12px">Scorecard</h3>
   <div class="row" style="margin-bottom:8px"><select id="ldCourse" style="flex:1;min-width:0">${Object.keys(COURSES).filter(k=>COURSES[k].par.length===n).map(k=>`<option ${k===r.name?'selected':''}>${esc(k)}</option>`).join('')}</select><button class="btn" data-a="loadCourse">Load card</button></div>
   <div class="hg"><b>#</b><b>Par</b><b>SI</b>${r.holes.map((h,i)=>`<span>${i+1}</span>${num(`R.holes.${i}.par`,h.par)}${num(`R.holes.${i}.si`,h.si)}`).join('')}</div>
   <div class="row" style="margin-top:10px"><button class="btn d" data-a="delRound">Delete this round</button></div></div>
@@ -668,12 +659,12 @@ function vSetup(){
   <div class="card"><h3>Trip</h3>
   <label class="f"><span>Unbroken String: each player pays the leader ($)</span>${num('trip.stringStake',S.trip.stringStake,0.5)}</label>
   <label class="f"><span>String uses handicap strokes (a double after your strokes breaks it)</span><input type="checkbox" data-set="trip.stringNet" data-ty="bool" ${S.trip.stringNet?'checked':''}></label>
-  <h3 style="margin-top:12px">Handicap after each 9</h3><div class="sm mut help">Handicaps only go down. Beat your net par by X strokes and your handicap drops by X × cut rate (0.5 = half). A bad 9 never raises it.</div>
+  <h3 style="margin-top:12px">Handicap after each 9</h3>
   <label class="f"><span>Cut rate</span>${num('hrule.down',S.hrule.down,0.05)}</label></div>
 
-  ${FB_CONFIG?`<div class="card"><h3>Live link</h3>${S.share?`<div class="sm mut" id="livestat">${liveStatus()}</div><div class="sm" style="word-break:break-all;margin:6px 0">${esc(shareUrl())}</div><button class="btn d" data-a="stopLive">Stop sharing</button>`:'<div class="sm mut">Not sharing. Start a link from Home or the Money tab.</div>'}</div>`:''}
+  ${FB_CONFIG?`<div class="card"><h3>Live link</h3>${S.share?`<div class="sm live ${liveCls()}" id="livestat">${liveStatus()}</div><div class="sm" style="word-break:break-all;margin:6px 0">${esc(shareUrl())}</div><button class="btn d" data-a="stopLive">Stop sharing</button>`:'<div class="sm mut">Not sharing. Start a link from Home or the Money tab.</div>'}</div>`:''}
   <div class="card"><h3>Data</h3><div class="row"><button class="btn" data-a="export">Export backup</button><button class="btn" data-a="import">Import</button><button class="btn d" data-a="clearRounds">Clear all rounds</button><button class="btn d" data-a="reset">Reset everything</button></div>
-  <div class="sm mut help" style="margin-top:6px">Clear all rounds keeps players and handicaps. Reset everything also wipes players.</div>
+  
   <input type="file" id="impFile" accept=".json,application/json" hidden></div>`;
 }
 
@@ -694,7 +685,6 @@ const ACT={
   delEv:d=>{snap();S.events=S.events.filter(e=>e.id!==d.id);commit();toast('Removed',true)},
   loadCourse:()=>{const k=$('#ldCourse').value,r=round(),c=COURSES[k];if(!c)return;r.name=k;r.holes=c.par.map((p,i)=>({par:p,si:c.si[i]}));commit();toast('Loaded '+k)},
   boardRound:d=>{S.boardRound=d.id;commit()},
-  skin:d=>setSkin(d.v),
   jump:d=>document.getElementById(d.id)?.scrollIntoView({behavior:'smooth',block:'start'}),
   viewRound:d=>{S.boardRound=d.id;S.moneyScope='round';S.tab=d.t;commit();scrollTo(0,0)},
   clearRounds:()=>confirmSheet('Clear all rounds?','Erases every round, score, fine and the jar. Players, nicknames and starting handicaps stay.','Clear rounds','clearRoundsYes'),
@@ -708,8 +698,8 @@ const ACT={
     if(hasData(r)){r=mkRound(name,n);S.rounds.push(r)}
     else{const fresh=mkRound(name,n);fresh.id=r.id;Object.assign(r,fresh)}
     r.stakes={...D.stakes};r.jarRule=D.jarRule;
-    r.games={net9:D.games.net9,bbb:D.games.bbb,ball:D.games.ball!==false,oneClubHole:D.games.oneClubHole!=null&&D.games.oneClubHole<n?D.games.oneClubHole:null};
-    S.cur=r.id;S.boardRound=r.id;r.cur=0;S.draft=null;S.draftOpen=false;S.tab='hole';commit();scrollTo(0,0);toast(`${name}: tee off! 🏌️`);
+    r.games={net9:D.games.net9,bbb:D.games.bbb,ball:D.games.ball!==false,gir:D.games.gir!==false,oneClubHole:D.games.oneClubHole!=null&&D.games.oneClubHole<n?D.games.oneClubHole:null};
+    S.cur=r.id;S.boardRound=r.id;r.cur=0;S.draft=null;S.draftOpen=false;S.tab='hole';commit();scrollTo(0,0);toast(`${name}: tee off! `);
   },
   delRound:()=>{const r=round(),last=S.rounds.length<2;
     confirmSheet(`Delete "${r.name}"?`,`This erases its scores, putts, BBB and fines.${last?' It is your only round, so you\'ll get a fresh empty one.':''}`,'Delete round','delRoundYes')},
@@ -771,7 +761,7 @@ document.addEventListener('change',e=>{
 document.addEventListener('toggle',e=>{const k=e.target.dataset&&e.target.dataset.tog;if(k)S[k]=e.target.open},true);
 document.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.id==='vtext')ACT.vsubmit()});
 
-function openSheet(html){$('#sheet').innerHTML=html;deco($('#sheet'));$('#sheet').hidden=false;$('#veil').hidden=false}
+function openSheet(html){$('#sheet').innerHTML=html;$('#sheet').hidden=false;$('#veil').hidden=false}
 function closeSheet(){$('#sheet').hidden=true;$('#veil').hidden=true}
 function confirmSheet(title,body,yes,act){
   openSheet(`<h2>${esc(title)}</h2><p class="mut">${esc(body)}</p><button class="big" style="background:#b91c1c" data-a="${act}">${esc(yes)}</button><button class="big" style="background:none;color:inherit;border:1px solid var(--line)" data-a="close">Cancel</button>`);
@@ -781,18 +771,18 @@ function openFineSheet(p){
   const gir=+(r.stakes.gir??1),n=S.players.length-1;
   const opt=k=>{const f=FINES[k],kind=fineKind(k),taken=f.first&&X.firsts[k];
     const price=kind==='track'?'tracked only':kind==='bounty'?(taken?'taken by '+esc(pname(taken)):`+${money(gir*n)} from the others`):(taken?'taken by '+esc(pname(taken))+' · $0':money(+r.stakes.fine)+' to jar');
-    return `<button class="opt" data-a="addFine" data-p="${p}" data-ty="${k}"><span style="font-size:22px">${f.icon}</span>${esc(f.label)}<small>${price}</small></button>`};
+    return `<button class="opt" data-a="addFine" data-p="${p}" data-ty="${k}">${esc(f.label)}<small>${price}</small></button>`};
   const sect=(title,kind)=>`<h3 style="margin:14px 0 2px">${title}</h3>`+FINE_ORDER.filter(k=>fineKind(k)===kind).map(opt).join('');
-  openSheet(`<h2>${esc(pname(p))} · hole ${r.cur+1}</h2>${sect('Fines (go in the jar)','fine')}${sect('Bounties (the others pay)','bounty')}${sect('Tracking','track')}
-    <div class="sm mut help" style="margin-top:8px">3-putts are fined automatically when you set putts to 3+.</div>`);
+  openSheet(`<h2>${esc(pname(p))} · hole ${r.cur+1}</h2>${sect('Fines (go in the jar)','fine')}${r.games.gir===false?'':sect('Bounties (the others pay)','bounty')}${sect('Tracking','track')}
+    `);
 }
 let toastT;
-function toast(msg,undo,warn){const t=$('#toast');t.classList.toggle('warn',!!warn);t.innerHTML=`<div>${esc(msg)}</div>${undo&&undoSnap?`<button data-a="undo">${L('UNDO','Undo')}</button>`:''}`;deco(t);t.hidden=false;clearTimeout(toastT);toastT=setTimeout(()=>t.hidden=true,warn?10000:undo?6000:2500)}
+function toast(msg,undo,warn){const t=$('#toast');t.classList.toggle('warn',!!warn);t.innerHTML=`<div>${esc(msg)}</div>${undo&&undoSnap?`<button data-a="undo">Undo</button>`:''}`;t.hidden=false;clearTimeout(toastT);toastT=setTimeout(()=>t.hidden=true,warn?10000:undo?6000:2500)}
 function share(){
   const C=compute(),scope=S.moneyScope||'round',r=viewRound();
   const led=scope==='trip'?C.ledger:C.ledger.filter(l=>l.r===r.id),{tx}=settle(led),X=C.R[r.id];
-  const lines=[`⛳ ${scope==='trip'?'Golf trip':r.name} settle-up`,...S.players.map(p=>{const T=X.tot[p.id];return `${p.name}: ${T.gross||'-'} gross, net ${T.thru?rel(T.net-T.par):'-'} (hcp now ${C.hc[p.id]})`}),'',
-    ...(tx.length?tx.map(t=>`${pname(t.from).replace('🫙 ','')} → ${pname(t.to).replace('🫙 ','')}: ${money(t.amt)}`):['All square']),`Jar: ${money(C.jar)}`];
+  const lines=[`${scope==='trip'?'Golf trip':r.name} settle-up`,...S.players.map(p=>{const T=X.tot[p.id];return `${p.name}: ${T.gross||'-'} gross, net ${T.thru?rel(T.net-T.par):'-'} (hcp now ${C.hc[p.id]})`}),'',
+    ...(tx.length?tx.map(t=>`${pname(t.from).replace('','')} → ${pname(t.to).replace('','')}: ${money(t.amt)}`):['All square']),`Jar: ${money(C.jar)}`];
   const text=lines.join('\n');
   if(navigator.share)navigator.share({text}).catch(()=>{});else navigator.clipboard?.writeText(text).then(()=>toast('Copied to clipboard'));
 }
@@ -915,14 +905,14 @@ function parseUtterance(text){
   if(!acts.length)return{acts,warn,err:"Heard the name, not what happened"};
   return{acts,warn,ask};
 }
-const describe=a=>a.k==='fine'?FINES[a.ty].icon+' '+FINES[a.ty].label.replace('First ','').replace(/ \(.*\)/,''):a.k==='bbb'?a.key[0].toUpperCase()+a.key.slice(1):a.k==='score'?'a '+a.v:a.v+' putts';
+const describe=a=>a.k==='fine'?FINES[a.ty].label.replace('First ','').replace(/ \(.*\)/,''):a.k==='bbb'?a.key[0].toUpperCase()+a.key.slice(1):a.k==='score'?'a '+a.v:a.v+' putts';
 function applyActs(acts,note){
   const r=round(),n=r.holes.length,out=[];
   for(const a of acts){
     if(a.k==='nav'){r.cur=a.h;out.push('Hole '+(a.h+1));continue}
     const nm=pname(a.p),hh=' (h'+(a.h+1)+')';
     if(a.k==='score'){setArr(r.scores,a.p,a.h,a.v,n);out.push(`${nm} ${a.v}`+hh)}
-    if(a.k==='putts'){setArr(r.putts,a.p,a.h,a.v,n);out.push(`${nm} ${a.v} putt${a.v===1?'':'s'}`+(a.v>=3?' 🫙':''))}
+    if(a.k==='putts'){setArr(r.putts,a.p,a.h,a.v,n);out.push(`${nm} ${a.v} putt${a.v===1?'':'s'}`+(a.v>=3?' ':''))}
     if(a.k==='fine'){S.events.push({id:uid(),t:Date.now(),r:r.id,h:a.h,p:a.p,type:a.ty,note});out.push(`${nm}: ${describe(a)}`+hh)}
     if(a.k==='bbb'){r.bbb[a.h]=r.bbb[a.h]||{};r.bbb[a.h][a.key]=a.p;out.push(`${describe(a)}: ${nm}`)}
   }
@@ -938,7 +928,7 @@ function handleUtterance(alts){
 }
 function finishVoice(b){
   snap();const msg=applyActs(b.p.acts,b.text);closeSheet();commit();
-  if(b.p.warn.length)toast(`⚠️ ${msg}. Didn't catch anything for ${b.p.warn.join(' or ')}, check them.`,true,true);
+  if(b.p.warn.length)toast(`${msg}. Didn't catch anything for ${b.p.warn.join(' or ')}, check them.`,true,true);
   else toast('✓ '+msg,true);
 }
 let PENDING=null;
@@ -956,8 +946,8 @@ function showVoice(heard,err,live){
   openSheet(`<h2>${live?'Listening…':'Say it or type it'}</h2><div class="heard">${esc(heard||'')}</div>
   ${err?`<div class="neg" style="margin-bottom:8px">${esc(err)}. Fix the text or try again.</div>`:''}
   <div class="vrow"><input type="text" id="vtext" value="${esc(heard||'')}" placeholder="Ryan hit a tree on hole 4"><button class="btn" data-a="vsubmit">Log</button></div>
-  <div class="row" style="margin-top:8px">${SR?'<button class="btn" data-a="vretry">🎤 Again</button>':''}<button class="btn" data-a="close">Cancel</button></div>
-  <div class="sm mut help" style="margin-top:10px">Try: "Ryan 5, two putts" · "Lautaro and Mike 6" · "I three putted" · "Ryan hit a tree on hole 4" · "Mike lost a ball" · "Dave hit the green in regulation" · "Ryan on first, Mike closest, Dave holed out first" · "everyone par" · "Ryan said you'll find it" · "next hole"</div>`);
+  <div class="row" style="margin-top:8px">${SR?'<button class="btn" data-a="vretry">Again</button>':''}<button class="btn" data-a="close">Cancel</button></div>
+  `);
 }
 function openVoice(){if(SR)startRec();else{showVoice('',"This browser has no speech input. Type instead");setTimeout(()=>$('#vtext')?.focus(),50)}}
 function stopRec(){try{rec&&rec.abort()}catch(e){}rec=null;$('#mic').classList.remove('live')}
@@ -1018,13 +1008,12 @@ function newShareId(){const a=new Uint8Array(16);crypto.getRandomValues(a);retur
 function ago(ms){const s=Math.max(0,Math.round((Date.now()-ms)/1000));return s<60?'just now':s<3600?Math.round(s/60)+' min ago':Math.round(s/3600)+' h ago'}
 function liveStatus(){
   if(!S.share)return'';
-  if(S.share.err)return `🟠 Live link on · waiting for signal${S.share.synced?`, last synced ${ago(S.share.synced)}`:''}`;
-  return S.share.synced?`🟢 Live link on · synced ${ago(S.share.synced)}`:'🟠 Live link on · connecting…';
+  if(S.share.err)return `Live link on · waiting for signal${S.share.synced?`, last synced ${ago(S.share.synced)}`:''}`;
+  return S.share.synced?`Live link on · synced ${ago(S.share.synced)}`:'Live link on · connecting…';
 }
-function setSkin(v){try{localStorage.setItem('golfbets.skin',v)}catch(e){}location.reload()
-}
-function refreshLive(){const el=$('#livestat');if(el){el.textContent=liveStatus();deco(el)}}
-function viewBar(){const r=round();return L(`👀 <b>Live, read-only</b> · ${esc(r.name)}, on hole ${r.cur+1} · updated ${ago(viewMeta.updated)}`,`<b>Live</b> · ${esc(r.name)} · hole ${r.cur+1} · ${ago(viewMeta.updated)}`)}
+function refreshLive(){const el=$('#livestat');if(el){el.textContent=liveStatus();el.classList.remove('ok','bad');el.classList.add(liveCls())}}
+const liveCls=()=>S.share&&S.share.synced&&!S.share.err?'ok':'bad';
+function viewBar(){const r=round();return `<b>Live</b> · ${esc(r.name)} · hole ${r.cur+1} · ${ago(viewMeta.updated)}`}
 async function startViewer(){
   document.body.classList.add('viewer');
   if(!FB_CONFIG){viewMeta.loaded=viewMeta.missing=true;render();return}
@@ -1037,7 +1026,7 @@ async function startViewer(){
       S={...JSON.parse(d.state),...keep};viewMeta.missing=false;viewMeta.updated=d.updated||Date.now();render();
     },()=>{viewMeta.loaded=viewMeta.missing=true;render()});
   }catch(e){viewMeta.loaded=viewMeta.missing=true;render()}
-  setInterval(()=>{const el=$('#viewbar');if(el&&!viewMeta.missing){el.innerHTML=viewBar();deco(el)}},15000);
+  setInterval(()=>{const el=$('#viewbar');if(el&&!viewMeta.missing){el.innerHTML=viewBar()}},15000);
 }
 
 render();
