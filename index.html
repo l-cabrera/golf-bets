@@ -64,6 +64,7 @@ nav#tabs .gap{flex:0 0 84px}
 .ft b{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:50%;background:rgba(0,0,0,.08)}
 .bbr{display:flex;align-items:center;gap:6px;margin:6px 0;flex-wrap:wrap}
 .bbr .lab{width:62px;font-weight:700}
+.step{font-weight:800;margin:14px 0 8px;color:var(--g)}
 .big{width:100%;height:52px;border-radius:12px;border:0;background:var(--acc);color:#fff;font-weight:800;font-size:17px;margin-top:4px}
 /* tables */
 table{width:100%;border-collapse:collapse;font-size:15px}
@@ -108,11 +109,11 @@ input[type=number]{width:80px}
 <main id="view"></main>
 <button id="mic" data-a="voice" aria-label="Voice log"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 17v5"/></svg></button>
 <nav id="tabs">
+  <button data-a="tab" data-t="home"><span>🏠</span>Home</button>
   <button data-a="tab" data-t="hole"><span>⛳</span>Hole</button>
-  <button data-a="tab" data-t="board"><span>📋</span>Board</button>
   <div class="gap"></div>
+  <button data-a="tab" data-t="board"><span>📋</span>Board</button>
   <button data-a="tab" data-t="money"><span>💵</span>Money</button>
-  <button data-a="tab" data-t="setup"><span>⚙️</span>Setup</button>
 </nav>
 <div id="veil" hidden data-a="close"></div>
 <div id="sheet" hidden></div>
@@ -177,7 +178,7 @@ function mkRound(name,n,prev){
 function mkState(){
   const players=['Lautaro','Ryan','Player 3','Player 4'].map((n,i)=>({id:'p'+(i+1),name:n,aliases:'',hcp:9}));
   const r=mkRound('East Potomac – White',9);
-  return {v:1,players,meId:'p1',hrule:{down:0.5,up:0.25,upCap:1},trip:{stringStake:5,stringNet:false},rounds:[r],cur:r.id,events:[],tab:'hole'};
+  return {v:1,players,meId:'p1',hrule:{down:0.5,up:0.25,upCap:1},trip:{stringStake:5,stringNet:false},rounds:[r],cur:r.id,events:[],tab:'home'};
 }
 let S=null;
 try{S=JSON.parse(localStorage.getItem(KEY))}catch(e){}
@@ -289,7 +290,7 @@ function settle(ledger){
 function render(){
   document.querySelectorAll('#tabs button').forEach(b=>b.classList.toggle('on',b.dataset.t===S.tab));
   const C=compute();
-  $('#view').innerHTML=({hole:vHole,board:vBoard,money:vMoney,setup:vSetup}[S.tab]||vHole)(C);
+  $('#view').innerHTML=({home:vHome,hole:vHole,board:vBoard,money:vMoney,setup:vSetup}[S.tab]||vHome)(C);
 }
 function scoreCls(d){return d<=-2?'bb':d===-1?'b':d===0?'p':d===1?'o1':'o2'}
 function vHole(C){
@@ -357,20 +358,54 @@ function vMoney(C){
   <button class="big" data-a="share">Share summary</button>`;
   return o;
 }
+const hasData=r=>Object.values(r.scores).some(a=>a.some(v=>v!=null))||S.events.some(e=>e.r===r.id)||r.bbb.some(Boolean);
+function mkDraft(){
+  const r=round();
+  return {course:COURSES[r.name]?r.name:'East Potomac – White',custom:'',holes:9,
+    stakes:{...r.stakes},games:{net9:r.games.net9,bbb:r.games.bbb,oneClubHole:null},jarRule:r.jarRule};
+}
+function vHome(C){
+  const r=round(),X=C.R[r.id],started=hasData(r),anyData=S.rounds.some(hasData);
+  if(!S.draft)S.draft=mkDraft();
+  const D=S.draft,cn=COURSES[D.course]?COURSES[D.course].par.length:+D.holes;
+  const thru=Math.max(0,...S.players.map(p=>X.tot[p.id].thru));
+  const num=(path,val)=>`<input type="number" inputmode="decimal" step="0.5" data-set="${path}" data-ty="num" value="${esc(val)}">`;
+  let o=`<div class="row" style="justify-content:space-between;margin-bottom:6px"><h2 style="margin:0">⛳ Golf Bets</h2><button class="btn" data-a="tab" data-t="setup">⚙️ Settings</button></div>`;
+  if(started)o+=`<div class="card"><h3>Round in progress</h3><div style="font-size:19px;font-weight:800">${esc(r.name)}</div>
+    <div class="mut sm">Thru ${thru} of ${r.holes.length} · Jar ${money(C.jar)}</div>
+    <button class="big" data-a="tab" data-t="hole">Continue on hole ${r.cur+1} ›</button></div>`;
+  o+=`<${started?'details':'div'} class="card" ${started&&S.draftOpen?'open':''} data-tog="draftOpen">${started?'<summary><b>＋ Start the next round</b></summary>':'<h3>Start a round</h3>'}
+  <div class="step">1 · Course</div>
+  <select data-set="draft.course" style="width:100%"><option value="" ${D.course?'':'selected'}>Other course…</option>${Object.keys(COURSES).map(k=>`<option value="${esc(k)}" ${D.course===k?'selected':''}>${esc(k)} · par ${COURSES[k].par.reduce((a,b)=>a+b,0)}</option>`).join('')}</select>
+  ${D.course?'':`<div class="row" style="margin-top:6px"><input type="text" data-set="draft.custom" value="${esc(D.custom)}" placeholder="Course name" style="flex:1"><select data-set="draft.holes" data-ty="num"><option ${+D.holes===9?'selected':''}>9</option><option ${+D.holes===18?'selected':''}>18</option></select></div><div class="sm mut">Pars default to 4. Fix them in Settings → Scorecard.</div>`}
+  <div class="step">2 · Players & handicaps</div>
+  ${anyData
+    ?`${S.players.map(p=>`<div class="tx" style="font-size:16px;padding:6px 0"><b>${esc(p.name)}</b><span class="amt">hcp ${C.hc[p.id]}</span></div>`).join('')}<div class="sm mut">Handicaps update on their own after every 9 holes.</div>`
+    :`<div class="sm mut" style="margin-bottom:6px">Handicap = strokes per 9 holes (about half your 18-hole handicap).</div>${S.players.map((p,k)=>`<div class="row" style="margin-bottom:6px"><input type="text" data-set="players.${k}.name" value="${esc(p.name)}" style="flex:1"><input type="number" step="0.5" inputmode="decimal" data-set="players.${k}.hcp" data-ty="num" value="${p.hcp}"></div>`).join('')}`}
+  <div class="step">3 · Games & stakes</div>
+  <label class="f"><span>Swear jar fine</span>$ ${num('draft.stakes.fine',D.stakes.fine)}</label>
+  <label class="f"><input type="checkbox" data-set="draft.games.net9" data-ty="bool" ${D.games.net9?'checked':''}><span>Net 9 matches, per head-to-head</span>$ ${num('draft.stakes.net9',D.stakes.net9)}</label>
+  <label class="f"><input type="checkbox" data-set="draft.games.bbb" data-ty="bool" ${D.games.bbb?'checked':''}><span>Bingo Bango Bongo, per point</span>$ ${num('draft.stakes.bbbPt',D.stakes.bbbPt)}</label>
+  <label class="f"><span>One-club (7-iron) hole</span><select data-set="draft.games.oneClubHole" data-ty="numOrNull"><option value="">None</option>${Array.from({length:cn},(_,i)=>`<option value="${i}" ${D.games.oneClubHole===i?'selected':''}>Hole ${i+1}</option>`).join('')}</select></label>
+  ${D.games.oneClubHole!=null?`<label class="f"><span>One-club: each loser pays winner</span>$ ${num('draft.stakes.oneClub',D.stakes.oneClub)}</label>`:''}
+  <div style="margin-top:6px"><b>Who wins the jar</b></div><select data-set="draft.jarRule" style="width:100%;margin:6px 0">${Object.entries(JAR_RULES).map(([v,[l]])=>`<option value="${v}" ${D.jarRule===v?'selected':''}>${l}</option>`).join('')}</select>
+  <div class="sm mut">${(JAR_RULES[D.jarRule]||JAR_RULES.outright)[1]}</div>
+  <button class="big" data-a="teeOff" style="margin-top:12px">Tee off ›</button>
+  <div class="sm mut" style="margin-top:6px">Rules for each game are under Settings and on the Board tab.</div></${started?'details':'div'}>`;
+  return o;
+}
 function vSetup(){
   const r=round(),n=r.holes.length;
   const num=(path,val,step)=>`<input type="number" inputmode="decimal" step="${step||1}" data-set="${path}" data-ty="num" value="${esc(val)}">`;
-  return `<h2>Setup</h2>
+  return `<div class="row" style="margin-bottom:4px"><button class="btn" data-a="tab" data-t="home">‹ Home</button><h2 style="margin:0">Settings</h2></div>
   <div class="card"><h3>Players</h3><div class="sm mut" style="margin-bottom:8px">Handicap = strokes per 9 holes (≈ half your 18-hole course handicap). Nicknames help the mic, e.g. "Brian, Rye".</div>
   <div class="prow sm mut"><span>Name</span><span>Mic nicknames</span><span>Hcp/9</span></div>
   ${S.players.map((p,k)=>`<div class="prow"><input type="text" data-set="players.${k}.name" value="${esc(p.name)}"><input type="text" data-set="players.${k}.aliases" value="${esc(p.aliases)}" placeholder="optional"><input type="number" step="0.5" inputmode="decimal" data-set="players.${k}.hcp" data-ty="num" value="${p.hcp}"></div>`).join('')}
   <label class="f"><span>Who is "me" / "I" on the mic</span><select data-set="meId">${S.players.map(p=>`<option value="${p.id}" ${S.meId===p.id?'selected':''}>${esc(p.name)}</option>`).join('')}</select></label>
   <div class="sm mut">Starting handicaps only. The current one updates on its own after each 9.</div></div>
 
-  <div class="card"><h3>Rounds</h3>${roundChips(r.id,'pickRound')}
-  <div class="row"><select id="nrCourse" style="flex:1 1 100%"><option value="">Custom course…</option>${Object.keys(COURSES).map(k=>`<option value="${esc(k)}">${esc(k)} · ${COURSES[k].par.length} holes, par ${COURSES[k].par.reduce((a,b)=>a+b,0)}</option>`).join('')}</select>
-  <input type="text" id="nrName" placeholder="Custom name" style="flex:1"><select id="nrHoles"><option>9</option><option>18</option></select><button class="btn" data-a="newRound">New round</button></div>
-  <div class="sm mut" style="margin-top:6px">Stakes and games carry over from the current round. Handicaps carry over automatically.</div></div>
+  <div class="card"><h3>Rounds</h3><div class="sm mut" style="margin-bottom:6px">Tap a round to view or edit it below.</div>${roundChips(r.id,'pickRound')}
+  <button class="btn" data-a="tab" data-t="home">＋ Start a new round (Home)</button></div>
 
   <div class="card"><h3>This round: ${esc(r.name)}</h3>
   <label class="f"><span>Course name</span><input type="text" data-set="R.name" value="${esc(r.name)}"></label>
@@ -421,10 +456,25 @@ const ACT={
   scope:d=>{S.moneyScope=d.v;commit()},
   pickRound:d=>{S.cur=d.id;S.boardRound=d.id;commit()},
   newRound:()=>{const ck=$('#nrCourse').value;const name=ck||$('#nrName').value.trim()||'Round '+(S.rounds.length+1);const r=mkRound(name,ck?COURSES[ck].par.length:+$('#nrHoles').value,round());S.rounds.push(r);S.cur=r.id;S.boardRound=r.id;commit();toast('Started '+name)},
-  delRound:()=>{if(S.rounds.length<2)return toast("Can't delete the only round");const r=round();if(!confirm(`Delete "${r.name}" and all its scores?`))return;snap();S.rounds=S.rounds.filter(x=>x.id!==r.id);S.events=S.events.filter(e=>e.r!==r.id);S.cur=S.rounds[0].id;S.boardRound=null;commit();toast('Round deleted',true)},
+  teeOff:()=>{
+    const D=S.draft||mkDraft(),preset=COURSES[D.course];
+    const name=D.course||D.custom.trim()||'Round '+(S.rounds.length+1),n=preset?preset.par.length:+D.holes||9;
+    let r=round();
+    if(hasData(r)){r=mkRound(name,n);S.rounds.push(r)}
+    else{const fresh=mkRound(name,n);fresh.id=r.id;Object.assign(r,fresh)}
+    r.stakes={...D.stakes};r.jarRule=D.jarRule;
+    r.games={net9:D.games.net9,bbb:D.games.bbb,oneClubHole:D.games.oneClubHole!=null&&D.games.oneClubHole<n?D.games.oneClubHole:null};
+    S.cur=r.id;S.boardRound=r.id;r.cur=0;S.draft=null;S.draftOpen=false;S.tab='hole';commit();scrollTo(0,0);toast(`${name}: tee off! 🏌️`);
+  },
+  delRound:()=>{const r=round(),last=S.rounds.length<2;
+    confirmSheet(`Delete "${r.name}"?`,`This erases its scores, putts, BBB and fines.${last?' It is your only round, so you\'ll get a fresh empty one.':''}`,'Delete round','delRoundYes')},
+  delRoundYes:()=>{snap();const r=round();S.events=S.events.filter(e=>e.r!==r.id);S.rounds=S.rounds.filter(x=>x.id!==r.id);
+    if(!S.rounds.length)S.rounds.push(mkRound('East Potomac – White',9));
+    S.cur=S.rounds[S.rounds.length-1].id;S.boardRound=null;S.draft=null;closeSheet();commit();toast('Round deleted',true)},
   export:()=>{const b=new Blob([JSON.stringify(S,null,1)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='golf-bets-'+new Date().toISOString().slice(0,10)+'.json';a.click()},
   import:()=>$('#impFile').click(),
-  reset:()=>{if(!confirm('Erase all rounds, scores and fines?'))return;snap();S=mkState();commit();toast('Reset',true)},
+  reset:()=>confirmSheet('Reset everything?','Erases all rounds, scores, fines and players. Export a backup first if you might want it.','Erase all','resetYes'),
+  resetYes:()=>{snap();S=mkState();closeSheet();commit();toast('Reset',true)},
   share:()=>share(),
   voice:()=>openVoice(),
   close:()=>{stopRec();closeSheet()},
@@ -445,10 +495,15 @@ document.addEventListener('change',e=>{
   for(let k=0;k<keys.length-1;k++)o=o[keys[k]];
   o[keys[keys.length-1]]=v;commit();
 });
+// remember whether the collapsible "next round" form is open across re-renders
+document.addEventListener('toggle',e=>{const k=e.target.dataset&&e.target.dataset.tog;if(k)S[k]=e.target.open},true);
 document.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.id==='vtext')ACT.vsubmit()});
 
 function openSheet(html){$('#sheet').innerHTML=html;$('#sheet').hidden=false;$('#veil').hidden=false}
 function closeSheet(){$('#sheet').hidden=true;$('#veil').hidden=true}
+function confirmSheet(title,body,yes,act){
+  openSheet(`<h2>${esc(title)}</h2><p class="mut">${esc(body)}</p><button class="big" style="background:#b91c1c" data-a="${act}">${esc(yes)}</button><button class="big" style="background:none;color:inherit;border:1px solid var(--line)" data-a="close">Cancel</button>`);
+}
 function openFineSheet(p){
   const r=round(),C=compute(),X=C.R[r.id];
   openSheet(`<h2>Fine ${esc(pname(p))} · hole ${r.cur+1}</h2>${FINE_ORDER.map(k=>{const f=FINES[k],taken=f.first&&X.firsts[k];
