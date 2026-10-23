@@ -1,5 +1,5 @@
 // Serve from cache instantly (spotty course signal), refresh the cache in the background.
-const CACHE = 'golfbets-v15';
+const CACHE = 'golfbets-v16';
 const ASSETS = ['./index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png'];
 // Firebase SDK for the live link; kept so the app can sync as soon as signal returns, even if it started offline
 const FB_SDK = ['app', 'auth', 'database'].map(m => `https://www.gstatic.com/firebasejs/10.12.2/firebase-${m}.js`);
@@ -21,6 +21,8 @@ self.addEventListener('fetch', e => {
   const url = new URL(e.request.url);
   const sdk = FB_SDK.includes(url.origin + url.pathname);
   if (url.origin !== location.origin && !sdk) return;
+  // ?fresh skips the cache entirely (tests.html must test the deployed code, not a cached copy)
+  if (url.searchParams.has('fresh')) return;
   // every page load (/, /index.html, /?view=…) is the same file: keep one copy so an update can't hide behind another URL
   const page = e.request.mode === 'navigate' && /\/(index\.html)?$/.test(url.pathname);
   const key = page ? './index.html' : e.request;
