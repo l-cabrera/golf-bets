@@ -143,8 +143,13 @@ const FINE_ORDER=Object.keys(FINES);
 const BBB=['bingo','bango','bongo'];
 
 const DEF_PARS=[4,4,3,5,4,4,3,4,5], DEF_SI=[1,5,7,3,2,6,9,8,4];
+// Known scorecards (par / stroke index per hole)
+const COURSES={
+  'East Potomac – White':{par:[3,4,4,4,4,3,4,4,4],si:[9,1,8,4,5,6,2,3,7]},
+};
 function mkRound(name,n,prev){
   const holes=Array.from({length:n},(_,i)=>({par:DEF_PARS[i%9],si:n===18?DEF_SI[i%9]*2-(i<9?1:0):DEF_SI[i]}));
+  const c=COURSES[name];if(c&&c.par.length===n)c.par.forEach((p,i)=>holes[i]={par:p,si:c.si[i]});
   return {id:uid(),name,date:new Date().toISOString().slice(0,10),holes,
     stakes:prev?{...prev.stakes}:{fine:1,net9:5,bbbPt:1,oneClub:5},
     games:prev?{...prev.games,oneClubHole:null}:{net9:true,bbb:true,oneClubHole:null},
@@ -152,12 +157,14 @@ function mkRound(name,n,prev){
 }
 function mkState(){
   const players=['Lautaro','Ryan','Player 3','Player 4'].map((n,i)=>({id:'p'+(i+1),name:n,aliases:'',hcp:9}));
-  const r=mkRound('East Potomac',9);
+  const r=mkRound('East Potomac – White',9);
   return {v:1,players,meId:'p1',hrule:{down:0.5,up:0.25,upCap:1},trip:{stringStake:5,stringNet:false},rounds:[r],cur:r.id,events:[],tab:'hole'};
 }
 let S=null;
 try{S=JSON.parse(localStorage.getItem(KEY))}catch(e){}
 if(!S||S.v!==1) S=mkState();
+// phones that opened v1 have the placeholder card on an untouched first round: swap in White
+{const r0=S.rounds[0];if(r0&&r0.name==='East Potomac'&&!Object.keys(r0.scores).length&&r0.holes.every((h,i)=>h.par===DEF_PARS[i]&&h.si===DEF_SI[i])){r0.name='East Potomac – White';const c=COURSES[r0.name];r0.holes=c.par.map((p,i)=>({par:p,si:c.si[i]}))}}
 function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
 const round=()=>S.rounds.find(r=>r.id===S.cur)||S.rounds[0];
 const pname=id=>id==='JAR'?'🫙 Jar':(S.players.find(p=>p.id===id)||{}).name||'?';
@@ -355,6 +362,7 @@ function vSetup(){
   <label class="f"><span>One-club: each loser pays winner ($)</span>${num('R.stakes.oneClub',r.stakes.oneClub,0.5)}</label>
   <label class="f"><span>Jar pays out when…</span><select data-set="R.jarRule">${[['outright','Outright low gross on a hole'],['par','Outright low gross, par or better'],['net','Outright low net on a hole']].map(([v,l])=>`<option value="${v}" ${r.jarRule===v?'selected':''}>${l}</option>`).join('')}</select></label>
   <h3 style="margin-top:12px">Scorecard</h3><div class="sm mut" style="margin-bottom:6px">SI = hole handicap from the card (1 = hardest). Strokes go to the hardest holes of each 9.</div>
+  ${Object.keys(COURSES).filter(k=>COURSES[k].par.length===n).map(k=>`<button class="btn" style="margin-bottom:8px" data-a="loadCourse" data-c="${esc(k)}">Load ${esc(k)} card</button>`).join('')}
   <div class="hg"><b>#</b><b>Par</b><b>SI</b>${r.holes.map((h,i)=>`<span>${i+1}</span>${num(`R.holes.${i}.par`,h.par)}${num(`R.holes.${i}.si`,h.si)}`).join('')}</div>
   <div class="row" style="margin-top:10px"><button class="btn d" data-a="delRound">Delete this round</button></div></div>
 
@@ -385,6 +393,7 @@ const ACT={
   fineSheet:d=>openFineSheet(d.p),
   addFine:d=>{snap();const r=round();S.events.push({id:uid(),t:Date.now(),r:r.id,h:r.cur,p:d.p,type:d.ty,note:''});closeSheet();commit();toast(`${pname(d.p)}: ${FINES[d.ty].label}`,true)},
   delEv:d=>{snap();S.events=S.events.filter(e=>e.id!==d.id);commit();toast('Fine removed',true)},
+  loadCourse:d=>{const r=round(),c=COURSES[d.c];r.name=d.c;r.holes=c.par.map((p,i)=>({par:p,si:c.si[i]}));commit();toast('Loaded '+d.c)},
   boardRound:d=>{S.boardRound=d.id;commit()},
   scope:d=>{S.moneyScope=d.v;commit()},
   pickRound:d=>{S.cur=d.id;S.boardRound=d.id;commit()},
