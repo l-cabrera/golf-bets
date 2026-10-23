@@ -141,12 +141,31 @@ const FINES={
 };
 const FINE_ORDER=Object.keys(FINES);
 const BBB=['bingo','bango','bongo'];
+// Plain-English rule text, shown on Board and Setup
+const JAR_RULES={
+  outright:['Best score on a hole, no ties','Whoever has the best score on a hole takes the whole jar. If two or more players tie for best, nobody wins it and the jar keeps growing.'],
+  par:['Best score on a hole, no ties, par or better','Like above, but the winner also has to make par or better. Beating everyone with a bogey doesn\'t count.'],
+  net:['Best score after handicap strokes, no ties','Same idea, but using each player\'s score after their handicap strokes on that hole, so higher handicaps can win it too.'],
+};
+const HELP={
+  net9:s=>`Every 9 holes, each player goes head-to-head against each of the others using their score after handicap strokes. Win a head-to-head and that player pays you ${money(s)}. Tie and no money moves.`,
+  bbb:s=>`3 points on every hole. <b>Bingo</b>: first ball on the green. <b>Bango</b>: closest to the pin once everyone is on. <b>Bongo</b>: first to hole out. Whoever is farthest from the hole always plays first. At the end you collect ${money(s)} for every point you're ahead of each player, and pay the same for every point you're behind.`,
+};
 
 const DEF_PARS=[4,4,3,5,4,4,3,4,5], DEF_SI=[1,5,7,3,2,6,9,8,4];
 // Known scorecards (par / stroke index per hole)
 const COURSES={
   'East Potomac – White':{par:[3,4,4,4,4,3,4,4,4],si:[9,1,8,4,5,6,2,3,7]},
+  'Duke University GC':{par:[4,4,4,3,4,4,5,3,5,4,5,3,4,5,3,4,4,4],si:[4,6,10,18,12,8,2,14,16,11,13,15,9,17,5,7,1,3]},
+  'UNC Finley GC':{par:[3,4,3,4,4,3,4,5,4,4,4,5,4,3,5,4,3,4],si:[12,6,18,16,2,8,10,14,4,5,17,11,7,15,1,9,13,3]},
+  'Preserve at Jordan Lake':{par:[5,4,3,4,4,3,4,4,5,4,3,4,4,5,4,5,3,4],si:[7,3,13,5,11,17,15,1,9,2,16,10,8,12,14,4,18,6]},
+  'Hillandale GC':{par:[4,5,4,3,4,4,3,4,4,4,4,4,4,5,3,4,3,5],si:[13,9,1,15,17,5,11,7,3,4,6,12,2,18,10,14,8,16]},
 };
+// 18-hole cards can also be played as a 9 (strokes go by SI rank within the nine)
+for(const [k,c] of Object.entries({...COURSES}))if(c.par.length===18){
+  COURSES[k+' (front 9)']={par:c.par.slice(0,9),si:c.si.slice(0,9)};
+  COURSES[k+' (back 9)']={par:c.par.slice(9),si:c.si.slice(9)};
+}
 function mkRound(name,n,prev){
   const holes=Array.from({length:n},(_,i)=>({par:DEF_PARS[i%9],si:n===18?DEF_SI[i%9]*2-(i<9?1:0):DEF_SI[i]}));
   const c=COURSES[name];if(c&&c.par.length===n)c.par.forEach((p,i)=>holes[i]={par:p,si:c.si[i]});
@@ -311,14 +330,14 @@ function vBoard(C){
   X.segs.forEach((g,k)=>{
     o+=`<div class="card"><h3>${X.segs.length>1?(k?'Back 9':'Front 9'):'9 holes'} · ${g.complete?'final':'in progress'}</h3><table><tr><th>Player</th><th>Gross</th><th>Net</th><th>Hcp</th></tr>
     ${S.players.map(p=>`<tr><td>${esc(p.name)}</td><td>${g.gross[p.id]||'—'}</td><td>${g.gross[p.id]?g.net[p.id]+' <span class="mut sm">'+rel(g.net[p.id]-g.par)+'</span>':'—'}</td><td>${g.complete?`${g.hcp[p.id]} → <b>${g.after[p.id]}</b>`:g.hcp[p.id]}</td></tr>`).join('')}</table>
-    ${g.complete&&r.games.net9?`<div class="sm mut" style="margin-top:6px">Net 9 match: ${money(+r.stakes.net9)} per head-to-head.</div>`:''}</div>`;
+    ${r.games.net9?`<div class="sm mut" style="margin-top:6px"><b>Net 9 match:</b> ${HELP.net9(+r.stakes.net9)}</div>`:''}</div>`;
   });
-  if(r.games.bbb)o+=`<div class="card"><h3>Bingo Bango Bongo</h3><table><tr><th>Player</th><th>Points</th></tr>${[...S.players].sort((a,b)=>X.bbb[b.id]-X.bbb[a.id]).map(p=>`<tr><td>${esc(p.name)}</td><td><b>${X.bbb[p.id]}</b></td></tr>`).join('')}</table></div>`;
+  if(r.games.bbb)o+=`<div class="card"><h3>Bingo Bango Bongo</h3><div class="sm mut" style="margin-bottom:6px">${HELP.bbb(+r.stakes.bbbPt)}</div><table><tr><th>Player</th><th>Points</th></tr>${[...S.players].sort((a,b)=>X.bbb[b.id]-X.bbb[a.id]).map(p=>`<tr><td>${esc(p.name)}</td><td><b>${X.bbb[p.id]}</b></td></tr>`).join('')}</table></div>`;
   const oh=r.games.oneClubHole;
   if(oh!=null&&oh!=='')o+=`<div class="card"><h3>One-club challenge · hole ${+oh+1}</h3>${X.oneClub?`${X.oneClub.w.length===S.players.length?'All tied, no money moves':'Winner'+(X.oneClub.w.length>1?'s (split)':'')+': <b>'+X.oneClub.w.map(pname).map(esc).join(', ')+'</b>'} with ${X.oneClub.score}`:'<span class="mut">Waiting for all scores on that hole.</span>'}</div>`;
   o+=`<div class="card"><h3>Unbroken String · whole trip</h3><div class="sm mut" style="margin-bottom:6px">Longest run without a ${S.trip.stringNet?'net ':''}double bogey or worse.</div><table><tr><th>Player</th><th>Current</th><th>Best</th></tr>
   ${[...S.players].sort((a,b)=>C.str[b.id].best-C.str[a.id].best).map(p=>`<tr><td>${C.leaders.includes(p.id)?'🏆 ':''}${esc(p.name)}</td><td>${C.str[p.id].cur}</td><td><b>${C.str[p.id].best}</b></td></tr>`).join('')}</table></div>`;
-  o+=`<div class="card"><h3>Swear jar</h3><div class="jarbig">${money(C.jar)}</div><div class="sm mut">Pays out when someone wins a hole outright${r.jarRule==='par'?' with par or better':r.jarRule==='net'?' on net score':''}.</div>
+  o+=`<div class="card"><h3>Swear jar</h3><div class="jarbig">${money(C.jar)}</div><div class="sm mut">Every fine goes in the jar. ${(JAR_RULES[r.jarRule]||JAR_RULES.outright)[1]}</div>
   <table style="margin-top:8px"><tr><th>Player</th><th>3-putts</th><th>Fines this round</th></tr>${S.players.map(p=>`<tr><td>${esc(p.name)}</td><td>${X.threePutts[p.id]}</td><td>${money(X.fines[p.id])}</td></tr>`).join('')}</table>
   ${X.jarWins.length?`<div style="margin-top:8px">${X.jarWins.map(w=>`<div class="sm">Hole ${w.h+1}: <b>${esc(pname(w.p))}</b> won ${w.amt?money(w.amt):'(jar was empty)'}</div>`).join('')}</div>`:''}</div>`;
   return o;
@@ -349,7 +368,9 @@ function vSetup(){
   <div class="sm mut">Starting handicaps only. The current one updates on its own after each 9.</div></div>
 
   <div class="card"><h3>Rounds</h3>${roundChips(r.id,'pickRound')}
-  <div class="row"><input type="text" id="nrName" placeholder="Course name" style="flex:1"><select id="nrHoles"><option>9</option><option>18</option></select><button class="btn" data-a="newRound">New round</button></div></div>
+  <div class="row"><select id="nrCourse" style="flex:1 1 100%"><option value="">Custom course…</option>${Object.keys(COURSES).map(k=>`<option value="${esc(k)}">${esc(k)} · ${COURSES[k].par.length} holes, par ${COURSES[k].par.reduce((a,b)=>a+b,0)}</option>`).join('')}</select>
+  <input type="text" id="nrName" placeholder="Custom name" style="flex:1"><select id="nrHoles"><option>9</option><option>18</option></select><button class="btn" data-a="newRound">New round</button></div>
+  <div class="sm mut" style="margin-top:6px">Stakes and games carry over from the current round. Handicaps carry over automatically.</div></div>
 
   <div class="card"><h3>This round: ${esc(r.name)}</h3>
   <label class="f"><span>Course name</span><input type="text" data-set="R.name" value="${esc(r.name)}"></label>
@@ -360,9 +381,11 @@ function vSetup(){
   <label class="f"><span>BBB, per point difference ($)</span>${num('R.stakes.bbbPt',r.stakes.bbbPt,0.5)}</label>
   <label class="f"><span>One-club (7-iron) hole</span><select data-set="R.games.oneClubHole" data-ty="numOrNull"><option value="">None</option>${r.holes.map((h,i)=>`<option value="${i}" ${+r.games.oneClubHole===i&&r.games.oneClubHole!==null&&r.games.oneClubHole!==''?'selected':''}>Hole ${i+1} (par ${h.par})</option>`).join('')}</select></label>
   <label class="f"><span>One-club: each loser pays winner ($)</span>${num('R.stakes.oneClub',r.stakes.oneClub,0.5)}</label>
-  <label class="f"><span>Jar pays out when…</span><select data-set="R.jarRule">${[['outright','Outright low gross on a hole'],['par','Outright low gross, par or better'],['net','Outright low net on a hole']].map(([v,l])=>`<option value="${v}" ${r.jarRule===v?'selected':''}>${l}</option>`).join('')}</select></label>
+  <div style="margin-top:10px"><b>Who wins the jar</b></div><select data-set="R.jarRule" style="width:100%;margin:6px 0">${Object.entries(JAR_RULES).map(([v,[l]])=>`<option value="${v}" ${r.jarRule===v?'selected':''}>${l}</option>`).join('')}</select>
+  <div class="sm mut">${(JAR_RULES[r.jarRule]||JAR_RULES.outright)[1]}</div>
+  <details class="sm" style="margin-top:10px"><summary><b>How Net 9 and BBB work</b></summary><p class="mut"><b>Net 9:</b> ${HELP.net9(+r.stakes.net9)}</p><p class="mut"><b>Bingo Bango Bongo:</b> ${HELP.bbb(+r.stakes.bbbPt)}</p></details>
   <h3 style="margin-top:12px">Scorecard</h3><div class="sm mut" style="margin-bottom:6px">SI = hole handicap from the card (1 = hardest). Strokes go to the hardest holes of each 9.</div>
-  ${Object.keys(COURSES).filter(k=>COURSES[k].par.length===n).map(k=>`<button class="btn" style="margin-bottom:8px" data-a="loadCourse" data-c="${esc(k)}">Load ${esc(k)} card</button>`).join('')}
+  <div class="row" style="margin-bottom:8px"><select id="ldCourse" style="flex:1;min-width:0">${Object.keys(COURSES).filter(k=>COURSES[k].par.length===n).map(k=>`<option ${k===r.name?'selected':''}>${esc(k)}</option>`).join('')}</select><button class="btn" data-a="loadCourse">Load card</button></div>
   <div class="hg"><b>#</b><b>Par</b><b>SI</b>${r.holes.map((h,i)=>`<span>${i+1}</span>${num(`R.holes.${i}.par`,h.par)}${num(`R.holes.${i}.si`,h.si)}`).join('')}</div>
   <div class="row" style="margin-top:10px"><button class="btn d" data-a="delRound">Delete this round</button></div></div>
 
@@ -393,11 +416,11 @@ const ACT={
   fineSheet:d=>openFineSheet(d.p),
   addFine:d=>{snap();const r=round();S.events.push({id:uid(),t:Date.now(),r:r.id,h:r.cur,p:d.p,type:d.ty,note:''});closeSheet();commit();toast(`${pname(d.p)}: ${FINES[d.ty].label}`,true)},
   delEv:d=>{snap();S.events=S.events.filter(e=>e.id!==d.id);commit();toast('Fine removed',true)},
-  loadCourse:d=>{const r=round(),c=COURSES[d.c];r.name=d.c;r.holes=c.par.map((p,i)=>({par:p,si:c.si[i]}));commit();toast('Loaded '+d.c)},
+  loadCourse:()=>{const k=$('#ldCourse').value,r=round(),c=COURSES[k];if(!c)return;r.name=k;r.holes=c.par.map((p,i)=>({par:p,si:c.si[i]}));commit();toast('Loaded '+k)},
   boardRound:d=>{S.boardRound=d.id;commit()},
   scope:d=>{S.moneyScope=d.v;commit()},
   pickRound:d=>{S.cur=d.id;S.boardRound=d.id;commit()},
-  newRound:()=>{const name=$('#nrName').value.trim()||'Round '+(S.rounds.length+1);const r=mkRound(name,+$('#nrHoles').value,round());S.rounds.push(r);S.cur=r.id;S.boardRound=r.id;commit();toast('Started '+name)},
+  newRound:()=>{const ck=$('#nrCourse').value;const name=ck||$('#nrName').value.trim()||'Round '+(S.rounds.length+1);const r=mkRound(name,ck?COURSES[ck].par.length:+$('#nrHoles').value,round());S.rounds.push(r);S.cur=r.id;S.boardRound=r.id;commit();toast('Started '+name)},
   delRound:()=>{if(S.rounds.length<2)return toast("Can't delete the only round");const r=round();if(!confirm(`Delete "${r.name}" and all its scores?`))return;snap();S.rounds=S.rounds.filter(x=>x.id!==r.id);S.events=S.events.filter(e=>e.r!==r.id);S.cur=S.rounds[0].id;S.boardRound=null;commit();toast('Round deleted',true)},
   export:()=>{const b=new Blob([JSON.stringify(S,null,1)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='golf-bets-'+new Date().toISOString().slice(0,10)+'.json';a.click()},
   import:()=>$('#impFile').click(),
@@ -562,7 +585,12 @@ function startRec(){
 }
 
 render();
-if('serviceWorker' in navigator&&location.protocol.startsWith('http'))navigator.serviceWorker.register('sw.js').catch(()=>{});
+if('serviceWorker' in navigator&&location.protocol.startsWith('http')){
+  // a new version took over: reload once so it shows now, not on the next open (state is already saved)
+  const hadSW=!!navigator.serviceWorker.controller;
+  navigator.serviceWorker.addEventListener('controllerchange',()=>{if(hadSW)location.reload()});
+  navigator.serviceWorker.register('sw.js').catch(()=>{});
+}
 </script>
 </body>
 </html>
