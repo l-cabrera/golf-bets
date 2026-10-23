@@ -3,14 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#15803d">
+<meta name="theme-color" content="#111111">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
 <title>Golf Bets</title>
 <style>
-:root{--bg:#f2f5f0;--card:#fff;--ink:#0f1a12;--mut:#5b6b5f;--line:#dbe3d8;--acc:#15803d;--g:#166534;--gl:#dcfce7;--red:#b91c1c;--rl:#fee2e2;--gold:#92400e;--yl:#fef3c7;--blue:#1d4ed8;--bl:#dbeafe}
-@media (prefers-color-scheme:dark){:root{--bg:#0b110d;--card:#142019;--ink:#eef5ef;--mut:#9fb1a3;--line:#26372c;--g:#4ade80;--gl:#123821;--red:#fca5a5;--rl:#3b1414;--gold:#fcd34d;--yl:#3a2e0b;--blue:#93c5fd;--bl:#152a4a}}
+:root{color-scheme:dark;--bg:#0b110d;--card:#142019;--ink:#eef5ef;--mut:#9fb1a3;--line:#26372c;--acc:#15803d;--g:#4ade80;--gl:#123821;--red:#fca5a5;--rl:#3b1414;--gold:#fcd34d;--yl:#3a2e0b;--blue:#93c5fd;--bl:#152a4a}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.35 system-ui,-apple-system,Roboto,"Segoe UI",sans-serif}
 button,input,select{font:inherit;color:inherit}
@@ -24,7 +23,9 @@ nav#tabs{position:fixed;bottom:0;left:0;right:0;display:flex;background:var(--ca
 nav#tabs button{flex:1;border:0;background:none;padding:9px 0 11px;font-size:12px;font-weight:600;color:var(--mut);display:flex;flex-direction:column;align-items:center;gap:1px}
 nav#tabs button span{font-size:20px}
 nav#tabs button.on{color:var(--g)}
-nav#tabs .gap{flex:0 0 76px}
+nav#tabs .gap{flex:0 0 84px}
+/* Rules lives on Home for the scorekeeper; live viewers have no Home, so they keep it in the bar */
+body:not(.viewer) nav#tabs [data-t=rules]{display:none}
 body.viewer #mic,body.viewer nav#tabs [data-t=home],body.viewer nav#tabs [data-t=hole],body.viewer nav#tabs .gap{display:none}
 body.viewer main{padding-bottom:90px}
 .viewbar{background:var(--bl);color:var(--blue);border-radius:12px;padding:8px 12px;font-size:13px;margin-bottom:10px}
@@ -43,8 +44,7 @@ table.sc tr.par td{color:var(--mut)}
 table.sc th.curh{color:var(--g);text-decoration:underline}
 .sx{display:inline-block;min-width:20px;border-radius:6px;font-weight:700}
 .sx.b{background:var(--gl);color:var(--g)}.sx.bb{background:var(--g);color:var(--card)}.sx.o1{background:var(--yl);color:var(--gold)}.sx.o2{background:var(--rl);color:var(--red)}
-/* mic sits over the nav gap: two tabs left of it, three right, gap 76px */
-#mic{position:fixed;left:calc((100vw - 76px) * 2 / 5 + 38px);transform:translateX(-50%);bottom:calc(14px + env(safe-area-inset-bottom));border:4px solid var(--bg)!important;width:66px;height:66px;border-radius:50%;border:0;background:var(--acc);color:#fff;box-shadow:0 6px 18px rgba(0,0,0,.28);z-index:7;display:grid;place-items:center}
+#mic{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(14px + env(safe-area-inset-bottom));border:4px solid var(--bg)!important;width:66px;height:66px;border-radius:50%;border:0;background:var(--acc);color:#fff;box-shadow:0 6px 18px rgba(0,0,0,.28);z-index:7;display:grid;place-items:center}
 #mic svg{width:30px;height:30px}
 #mic.live{background:#dc2626;animation:pulse 1s infinite}
 @keyframes pulse{50%{box-shadow:0 0 0 12px rgba(220,38,38,.2)}}
@@ -136,8 +136,8 @@ input[type=number]{width:80px}
 [hidden]{display:none!important}
 
 /* ===== Clean skin (preview): flat sections, square-ish corners, one accent, no decoration ===== */
-[data-skin=clean]{--bg:#fafaf9;--card:#fafaf9;--ink:#151515;--mut:#6e6e6b;--line:#e3e3df;--acc:#1d4d33;--g:#1d4d33;--gl:transparent;--red:#a8231a;--rl:transparent;--gold:#151515;--yl:transparent;--blue:#151515;--bl:transparent}
-@media (prefers-color-scheme:dark){[data-skin=clean]{--bg:#111;--card:#111;--ink:#ececea;--mut:#8d8d89;--line:#2a2a28;--acc:#2f6f47;--g:#8cc4a0;--red:#f08a80;--gold:#ececea;--blue:#ececea}}
+/* always dark, whatever the phone's light/dark setting */
+[data-skin=clean]{color-scheme:dark;--bg:#111;--card:#111;--ink:#ececea;--mut:#8d8d89;--line:#2a2a28;--acc:#2f6f47;--g:#8cc4a0;--gl:transparent;--red:#f08a80;--rl:transparent;--gold:#ececea;--yl:transparent;--blue:#ececea;--bl:transparent}
 [data-skin=clean] body{font-variant-numeric:tabular-nums}
 [data-skin=clean] main{padding:8px 16px 150px}
 [data-skin=clean] h2{font-size:20px;font-weight:650;margin:10px 0 6px}
@@ -217,8 +217,8 @@ const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&
 const r2=n=>Math.round(n*100)/100;
 const money=n=>(n<-0.004?'−':'')+'$'+(Math.abs(n)%1?Math.abs(n).toFixed(2):Math.abs(n).toFixed(0));
 const rel=n=>n===0?'E':(n>0?'+'+n:'−'+(-n));
-// Design skin, per device: 'classic' (default) or 'clean' (preview). ?skin=clean|classic switches and remembers it.
-const SKIN=(()=>{const q=new URLSearchParams(location.search).get('skin');try{if(q)localStorage.setItem('golfbets.skin',q);return q||localStorage.getItem('golfbets.skin')||'classic'}catch(e){return q||'classic'}})();
+// Design skin, per device: 'clean' (default) or 'classic'. ?skin=clean|classic switches and remembers it.
+const SKIN=(()=>{const q=new URLSearchParams(location.search).get('skin');try{if(q)localStorage.setItem('golfbets.skin',q);return q||localStorage.getItem('golfbets.skin')||'clean'}catch(e){return q||'clean'}})();
 const CLEAN=SKIN==='clean';
 document.documentElement.dataset.skin=SKIN;
 const L=(classic,clean)=>CLEAN?clean:classic;
@@ -539,7 +539,7 @@ function vRules(){
   const fineRows=FINE_ORDER.filter(k=>fineKind(k)==='fine').map(k=>{const x=FINES[k];
     return `<tr><td>${x.icon} ${esc(x.label.replace(/^First /,'').replace(/^./,c=>c.toUpperCase()))}</td><td>${x.first?'first one each round':'every time'}</td><td>${money(f)}</td></tr>`}).join('');
   const toc=[['scoring','Scoring & handicaps'],['jar','Swear jar'],['net9','Net 9 match'],['bbb','Bingo Bango Bongo'],['ball','Longest ball'],['gir','First GIR'],['oneclub','One-club challenge'],['string','Unbroken String'],['tracking','Lost balls & penalties'],['settle','Settling up']];
-  return `<h2>Bet sheet</h2>${S.rounds.length>1?roundChips(r.id,'boardRound'):''}
+  return `${VIEW?'<h2>Bet sheet</h2>':'<div class="row" style="margin-bottom:4px"><button class="btn" data-a="tab" data-t="home">‹ Home</button><h2 style="margin:0">Bet sheet</h2></div>'}${S.rounds.length>1?roundChips(r.id,'boardRound'):''}
   <div class="sm mut help" style="margin-bottom:8px">Amounts and on/off are for <b>${esc(r.name)}</b>. Tap a bet to jump to it.</div>
   <div class="card"><div class="toc">${toc.map(([id,t],i)=>`<button class="chip" data-a="jump" data-id="rule-${id}">${i+1}. ${t}</button>`).join('')}</div></div>
   ${sec('scoring','⛳','Scoring & handicaps','',`
@@ -594,7 +594,7 @@ function vHome(C){
   const D=S.draft,cn=COURSES[D.course]?COURSES[D.course].par.length:+D.holes;
   const thru=Math.max(0,...S.players.map(p=>X.tot[p.id].thru));
   const num=(path,val)=>`<input type="number" inputmode="decimal" step="0.5" data-set="${path}" data-ty="num" value="${esc(val)}">`;
-  let o=`<div class="row" style="justify-content:space-between;margin-bottom:6px"><h2 style="margin:0">⛳ Golf Bets</h2><button class="btn" data-a="tab" data-t="setup">⚙️ Settings</button></div>`;
+  let o=`<div class="row" style="justify-content:space-between;margin-bottom:6px"><h2 style="margin:0">⛳ Golf Bets</h2><div class="row" style="gap:6px"><button class="btn" data-a="tab" data-t="rules">📖 Rules</button><button class="btn" data-a="tab" data-t="setup">⚙️ Settings</button></div></div>`;
   if(started)o+=`<div class="card"><h3>Round in progress</h3><div style="font-size:19px;font-weight:800">${esc(r.name)}</div>
     <div class="mut sm">Thru ${thru} of ${r.holes.length} · Jar ${money(C.jar)}</div>
     <button class="big" data-a="tab" data-t="hole">${L(`Continue on hole ${r.cur+1} ›`,`Continue · hole ${r.cur+1}`)}</button>${liveBlock()}</div>`;
@@ -635,7 +635,7 @@ function vSetup(){
   const r=round(),n=r.holes.length;
   const num=(path,val,step)=>`<input type="number" inputmode="decimal" step="${step||1}" data-set="${path}" data-ty="num" value="${esc(val)}">`;
   return `<div class="row" style="margin-bottom:4px"><button class="btn" data-a="tab" data-t="home">‹ Home</button><h2 style="margin:0">Settings</h2></div>
-  <div class="card"><h3>Design</h3><div class="seg" style="margin:0">${[['classic','Classic'],['clean','Clean (preview)']].map(([v,l])=>`<button class="chip ${SKIN===v?'on':''}" data-a="skin" data-v="${v}">${l}</button>`).join('')}</div></div>
+  <div class="card"><h3>Design</h3><div class="seg" style="margin:0">${[['classic','Classic'],['clean','Clean']].map(([v,l])=>`<button class="chip ${SKIN===v?'on':''}" data-a="skin" data-v="${v}">${l}</button>`).join('')}</div></div>
   <div class="card"><h3>Players</h3><div class="sm mut help" style="margin-bottom:8px">Handicap = strokes per 9 holes (≈ half your 18-hole course handicap). Nicknames help the mic, e.g. "Brian, Rye".</div>
   <div class="prow sm mut"><span>Name</span><span>Mic nicknames</span><span>Hcp/9</span></div>
   ${S.players.map((p,k)=>`<div class="prow"><input type="text" data-set="players.${k}.name" value="${esc(p.name)}"><input type="text" data-set="players.${k}.aliases" value="${esc(p.aliases)}" placeholder="optional"><input type="number" step="0.5" inputmode="decimal" data-set="players.${k}.hcp" data-ty="num" value="${p.hcp}"></div>`).join('')}
