@@ -187,6 +187,8 @@ if(!S||S.v!==1) S=mkState();
 {const r0=S.rounds[0];if(r0&&r0.name==='East Potomac'&&!Object.keys(r0.scores).length&&r0.holes.every((h,i)=>h.par===DEF_PARS[i]&&h.si===DEF_SI[i])){r0.name='East Potomac – White';const c=COURSES[r0.name];r0.holes=c.par.map((p,i)=>({par:p,si:c.si[i]}))}}
 function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
 const round=()=>S.rounds.find(r=>r.id===S.cur)||S.rounds[0];
+// round shown on Board/Money (can be a past one); the round being played stays S.cur
+const viewRound=()=>S.rounds.find(r=>r.id===S.boardRound)||round();
 const pname=id=>id==='JAR'?'🫙 Jar':(S.players.find(p=>p.id===id)||{}).name||'?';
 const sc=(r,p,i)=>(r.scores[p]||[])[i]??null;
 const pt=(r,p,i)=>(r.putts[p]||[])[i]??null;
@@ -323,7 +325,7 @@ function vHole(C){
 }
 function roundChips(sel,act){return `<div class="seg">${S.rounds.map(r=>`<button class="chip ${r.id===sel?'on':''}" data-a="${act}" data-id="${r.id}">${esc(r.name)}</button>`).join('')}</div>`}
 function vBoard(C){
-  const r=S.rounds.find(x=>x.id===(S.boardRound||S.cur))||round(),X=C.R[r.id];
+  const r=viewRound(),X=C.R[r.id];
   const ps=[...S.players].sort((a,b)=>{const A=X.tot[a.id],B=X.tot[b.id];return (A.net-A.par)-(B.net-B.par)||B.thru-A.thru});
   let o=`<h2>Leaderboard</h2>${S.rounds.length>1?roundChips(r.id,'boardRound'):''}
   <div class="card"><table><tr><th>Player</th><th>Thru</th><th>Gross</th><th>Net</th><th>Hcp now</th></tr>
@@ -344,11 +346,12 @@ function vBoard(C){
   return o;
 }
 function vMoney(C){
-  const scope=S.moneyScope||'round',r=round();
+  const scope=S.moneyScope||'round',r=viewRound();
   const led=scope==='trip'?C.ledger:C.ledger.filter(l=>l.r===r.id);
   const {bal,tx}=settle(led);
   const cats=[...new Set(led.map(l=>l.cat))];
-  let o=`<h2>Settle up</h2><div class="seg"><button class="chip ${scope==='round'?'on':''}" data-a="scope" data-v="round">This round</button><button class="chip ${scope==='trip'?'on':''}" data-a="scope" data-v="trip">Whole trip</button></div>
+  let o=`<h2>Settle up</h2><div class="seg"><button class="chip ${scope==='round'?'on':''}" data-a="scope" data-v="round">One round</button><button class="chip ${scope==='trip'?'on':''}" data-a="scope" data-v="trip">All rounds</button></div>
+  ${scope==='round'&&S.rounds.length>1?roundChips(r.id,'boardRound'):''}
   <div class="card"><h3>Who pays whom</h3>${tx.length?tx.map(t=>`<div class="tx"><b>${esc(pname(t.from))}</b> → <b>${esc(pname(t.to))}</b><span class="amt">${money(t.amt)}</span></div>`).join(''):'<div class="mut">All square so far.</div>'}
   ${tx.some(t=>t.to==='JAR')?'<div class="sm mut" style="margin-top:6px">Money to the jar stays in the pot until someone wins it.</div>':''}
   ${scope==='trip'&&C.leaders.length?'<div class="sm mut" style="margin-top:6px">Includes Unbroken String for the current leader. Final once the trip is over.</div>':''}</div>
@@ -392,6 +395,17 @@ function vHome(C){
   <div class="sm mut">${(JAR_RULES[D.jarRule]||JAR_RULES.outright)[1]}</div>
   <button class="big" data-a="teeOff" style="margin-top:12px">Tee off ›</button>
   <div class="sm mut" style="margin-top:6px">Rules for each game are under Settings and on the Board tab.</div></${started?'details':'div'}>`;
+  const played=S.rounds.filter(hasData).reverse();
+  if(played.length){
+    o+=`<div class="card"><h3>Rounds</h3>${played.map(x=>{
+      const Y=C.R[x.id],ps=S.players.filter(p=>Y.tot[p.id].thru);
+      const best=ps.length?Math.min(...ps.map(p=>Y.tot[p.id].net-Y.tot[p.id].par)):null;
+      const lead=ps.filter(p=>Y.tot[p.id].net-Y.tot[p.id].par===best).map(p=>p.name).join(' & ');
+      const thru=Math.max(0,...S.players.map(p=>Y.tot[p.id].thru)),done=thru===x.holes.length;
+      return `<div class="tx" style="font-size:15px;flex-wrap:wrap"><div style="flex:1;min-width:0"><b>${esc(x.name)}</b>${x.id===S.cur?' <span class="pill" style="font-size:11px">playing</span>':''}
+        <div class="sm mut">${esc(x.date)} · ${done?'final':'thru '+thru} · ${lead?`low net: ${esc(lead)} (${rel(best)})`:'no scores'}</div></div>
+        <button class="chip" data-a="viewRound" data-id="${x.id}" data-t="board">Scores</button><button class="chip" data-a="viewRound" data-id="${x.id}" data-t="money">Money</button></div>`}).join('')}</div>`;
+  }
   return o;
 }
 function vSetup(){
@@ -432,7 +446,8 @@ function vSetup(){
   <label class="f"><span>Raise rate</span>${num('hrule.up',S.hrule.up,0.05)}</label>
   <label class="f"><span>Max raise per 9</span>${num('hrule.upCap',S.hrule.upCap,0.5)}</label></div>
 
-  <div class="card"><h3>Data</h3><div class="row"><button class="btn" data-a="export">Export backup</button><button class="btn" data-a="import">Import</button><button class="btn d" data-a="reset">Reset all</button></div>
+  <div class="card"><h3>Data</h3><div class="row"><button class="btn" data-a="export">Export backup</button><button class="btn" data-a="import">Import</button><button class="btn d" data-a="clearRounds">Clear all rounds</button><button class="btn d" data-a="reset">Reset everything</button></div>
+  <div class="sm mut" style="margin-top:6px">Clear all rounds keeps players and handicaps. Reset everything also wipes players.</div>
   <input type="file" id="impFile" accept=".json,application/json" hidden></div>`;
 }
 
@@ -453,6 +468,9 @@ const ACT={
   delEv:d=>{snap();S.events=S.events.filter(e=>e.id!==d.id);commit();toast('Fine removed',true)},
   loadCourse:()=>{const k=$('#ldCourse').value,r=round(),c=COURSES[k];if(!c)return;r.name=k;r.holes=c.par.map((p,i)=>({par:p,si:c.si[i]}));commit();toast('Loaded '+k)},
   boardRound:d=>{S.boardRound=d.id;commit()},
+  viewRound:d=>{S.boardRound=d.id;S.moneyScope='round';S.tab=d.t;commit();scrollTo(0,0)},
+  clearRounds:()=>confirmSheet('Clear all rounds?','Erases every round, score, fine and the jar. Players, nicknames and starting handicaps stay.','Clear rounds','clearRoundsYes'),
+  clearRoundsYes:()=>{snap();const r=mkRound('East Potomac – White',9);S.rounds=[r];S.cur=r.id;S.events=[];S.boardRound=null;S.draft=null;S.tab='home';closeSheet();commit();toast('All rounds cleared',true)},
   scope:d=>{S.moneyScope=d.v;commit()},
   pickRound:d=>{S.cur=d.id;S.boardRound=d.id;commit()},
   newRound:()=>{const ck=$('#nrCourse').value;const name=ck||$('#nrName').value.trim()||'Round '+(S.rounds.length+1);const r=mkRound(name,ck?COURSES[ck].par.length:+$('#nrHoles').value,round());S.rounds.push(r);S.cur=r.id;S.boardRound=r.id;commit();toast('Started '+name)},
@@ -513,7 +531,7 @@ function openFineSheet(p){
 let toastT;
 function toast(msg,undo){const t=$('#toast');t.innerHTML=`<div>${esc(msg)}</div>${undo&&undoSnap?'<button data-a="undo">UNDO</button>':''}`;t.hidden=false;clearTimeout(toastT);toastT=setTimeout(()=>t.hidden=true,undo?6000:2500)}
 function share(){
-  const C=compute(),scope=S.moneyScope||'round',r=round();
+  const C=compute(),scope=S.moneyScope||'round',r=viewRound();
   const led=scope==='trip'?C.ledger:C.ledger.filter(l=>l.r===r.id),{tx}=settle(led),X=C.R[r.id];
   const lines=[`⛳ ${scope==='trip'?'Golf trip':r.name} settle-up`,...S.players.map(p=>{const T=X.tot[p.id];return `${p.name}: ${T.gross||'-'} gross, net ${T.thru?rel(T.net-T.par):'-'} (hcp now ${C.hc[p.id]})`}),'',
     ...(tx.length?tx.map(t=>`${pname(t.from).replace('🫙 ','')} → ${pname(t.to).replace('🫙 ','')}: ${money(t.amt)}`):['All square']),`Jar: ${money(C.jar)}`];
