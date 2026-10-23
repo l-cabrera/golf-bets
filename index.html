@@ -1,0 +1,559 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#15803d">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>Golf Bets</title>
+<style>
+:root{--bg:#f2f5f0;--card:#fff;--ink:#0f1a12;--mut:#5b6b5f;--line:#dbe3d8;--acc:#15803d;--g:#166534;--gl:#dcfce7;--red:#b91c1c;--rl:#fee2e2;--gold:#92400e;--yl:#fef3c7;--blue:#1d4ed8;--bl:#dbeafe}
+@media (prefers-color-scheme:dark){:root{--bg:#0b110d;--card:#142019;--ink:#eef5ef;--mut:#9fb1a3;--line:#26372c;--g:#4ade80;--gl:#123821;--red:#fca5a5;--rl:#3b1414;--gold:#fcd34d;--yl:#3a2e0b;--blue:#93c5fd;--bl:#152a4a}}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.35 system-ui,-apple-system,Roboto,"Segoe UI",sans-serif}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer;touch-action:manipulation}
+main{padding:12px 12px 160px;max-width:640px;margin:0 auto}
+h2{font-size:20px;margin:6px 2px 10px}
+h3{font-size:15px;margin:0 0 8px;color:var(--mut);text-transform:uppercase;letter-spacing:.04em}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px;margin-bottom:10px}
+.mut{color:var(--mut)} .sm{font-size:13px}
+nav#tabs{position:fixed;bottom:0;left:0;right:0;display:flex;background:var(--card);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom);z-index:6}
+nav#tabs button{flex:1;border:0;background:none;padding:9px 0 11px;font-size:12px;font-weight:600;color:var(--mut);display:flex;flex-direction:column;align-items:center;gap:1px}
+nav#tabs button span{font-size:20px}
+nav#tabs button.on{color:var(--g)}
+nav#tabs .gap{flex:0 0 84px}
+#mic{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(14px + env(safe-area-inset-bottom));border:4px solid var(--bg)!important;width:66px;height:66px;border-radius:50%;border:0;background:var(--acc);color:#fff;box-shadow:0 6px 18px rgba(0,0,0,.28);z-index:7;display:grid;place-items:center}
+#mic svg{width:30px;height:30px}
+#mic.live{background:#dc2626;animation:pulse 1s infinite}
+@keyframes pulse{50%{box-shadow:0 0 0 12px rgba(220,38,38,.2)}}
+/* hole */
+.hh{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.hh .nav{width:52px;height:52px;border-radius:12px;border:1px solid var(--line);background:var(--card);font-size:28px;line-height:1}
+.hh .nav:disabled{opacity:.3}
+.hc{flex:1;text-align:center}
+.hn{font-size:26px;font-weight:800}
+.hs{color:var(--mut);font-size:14px}
+.pills{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;margin-bottom:10px}
+.pill{border-radius:999px;padding:4px 10px;font-size:13px;font-weight:700;background:var(--yl);color:var(--gold)}
+.pill.oc{background:var(--bl);color:var(--blue)}
+.pc{padding:10px 12px}
+.pt{display:flex;align-items:baseline;gap:6px;margin-bottom:8px}
+.nm{font-weight:800;font-size:18px}
+.dots{color:var(--g);font-size:11px;letter-spacing:1px}
+.meta{margin-left:auto;color:var(--mut);font-size:13px;white-space:nowrap}
+.sr{display:flex;align-items:center;gap:6px}
+.stp{width:46px;height:46px;border-radius:12px;border:1px solid var(--line);background:var(--bg);font-size:24px;font-weight:700}
+.sv{width:58px;height:50px;border-radius:12px;border:2px solid var(--line);background:var(--card);font-size:26px;font-weight:800}
+.sv.empty{color:var(--mut);font-weight:400}
+.sv.b{border-color:var(--g);background:var(--gl);color:var(--g)}
+.sv.bb{border-color:var(--g);background:var(--g);color:var(--card)}
+.sv.p{border-color:var(--ink)}
+.sv.o1{border-color:var(--gold);background:var(--yl);color:var(--gold)}
+.sv.o2{border-color:var(--red);background:var(--rl);color:var(--red)}
+.fb{margin-left:auto;height:46px;padding:0 12px;border-radius:12px;border:1px dashed var(--red);background:none;color:var(--red);font-weight:700}
+.pu{display:flex;align-items:center;gap:6px;margin-top:8px}
+.pu .lab{font-size:13px;color:var(--mut);width:42px}
+.chip{min-width:40px;height:36px;padding:0 10px;border-radius:999px;border:1px solid var(--line);background:var(--bg);font-weight:700}
+.chip.on{background:var(--acc);border-color:var(--acc);color:#fff}
+.fl{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.ft{display:inline-flex;align-items:center;gap:4px;background:var(--rl);color:var(--red);border-radius:999px;padding:3px 4px 3px 10px;font-size:13px;font-weight:600;border:0}
+.ft.auto{padding-right:10px}
+.ft b{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:50%;background:rgba(0,0,0,.08)}
+.bbr{display:flex;align-items:center;gap:6px;margin:6px 0;flex-wrap:wrap}
+.bbr .lab{width:62px;font-weight:700}
+.big{width:100%;height:52px;border-radius:12px;border:0;background:var(--acc);color:#fff;font-weight:800;font-size:17px;margin-top:4px}
+/* tables */
+table{width:100%;border-collapse:collapse;font-size:15px}
+th,td{padding:7px 4px;text-align:right;border-bottom:1px solid var(--line)}
+th:first-child,td:first-child{text-align:left}
+th{font-size:12px;color:var(--mut);font-weight:600;text-transform:uppercase}
+tr:last-child td{border-bottom:0}
+.pos{color:var(--g);font-weight:700} .neg{color:var(--red);font-weight:700}
+.seg{display:flex;gap:6px;margin-bottom:10px;overflow-x:auto}
+.seg .chip{white-space:nowrap}
+.tx{display:flex;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid var(--line);font-size:17px}
+.tx:last-child{border-bottom:0}
+.tx .amt{margin-left:auto;font-weight:800}
+.jarbig{font-size:34px;font-weight:800;color:var(--gold)}
+/* setup */
+label.f{display:flex;align-items:center;gap:8px;margin:8px 0}
+label.f>span{flex:1}
+input[type=text],input[type=number],select{height:42px;border:1px solid var(--line);border-radius:10px;background:var(--bg);padding:0 10px;min-width:0}
+input[type=number]{width:80px}
+.prow{display:grid;grid-template-columns:1fr 1fr 70px;gap:6px;margin-bottom:8px;align-items:center}
+.hg{display:grid;grid-template-columns:36px 1fr 1fr;gap:4px 6px;align-items:center;font-size:14px}
+.hg input{width:100%}
+.btn{height:42px;padding:0 14px;border-radius:10px;border:1px solid var(--line);background:var(--bg);font-weight:700}
+.btn.d{color:var(--red);border-color:var(--red)}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+/* sheet & toast */
+#veil{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:9}
+#sheet{position:fixed;left:0;right:0;bottom:0;background:var(--card);border-radius:18px 18px 0 0;padding:14px 14px calc(18px + env(safe-area-inset-bottom));z-index:10;max-height:85vh;overflow:auto;max-width:640px;margin:0 auto}
+#sheet .opt{display:flex;width:100%;align-items:center;gap:10px;padding:13px 10px;border:0;border-bottom:1px solid var(--line);background:none;text-align:left;font-size:16px}
+#sheet .opt:disabled{opacity:.45}
+#sheet .opt small{margin-left:auto;color:var(--mut)}
+.heard{font-size:20px;font-weight:700;min-height:56px;padding:6px 2px}
+.vrow{display:flex;gap:6px}
+.vrow input{flex:1}
+#toast{position:fixed;left:12px;right:12px;bottom:calc(150px + env(safe-area-inset-bottom));background:var(--ink);color:var(--bg);border-radius:14px;padding:12px 14px;z-index:11;display:flex;gap:10px;align-items:center;max-width:616px;margin:0 auto;box-shadow:0 8px 24px rgba(0,0,0,.3)}
+#toast div{flex:1;font-size:15px}
+#toast button{border:0;background:none;color:var(--g2,#4ade80);font-weight:800;padding:6px}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<main id="view"></main>
+<button id="mic" data-a="voice" aria-label="Voice log"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 17v5"/></svg></button>
+<nav id="tabs">
+  <button data-a="tab" data-t="hole"><span>⛳</span>Hole</button>
+  <button data-a="tab" data-t="board"><span>📋</span>Board</button>
+  <div class="gap"></div>
+  <button data-a="tab" data-t="money"><span>💵</span>Money</button>
+  <button data-a="tab" data-t="setup"><span>⚙️</span>Setup</button>
+</nav>
+<div id="veil" hidden data-a="close"></div>
+<div id="sheet" hidden></div>
+<div id="toast" hidden></div>
+<script>
+'use strict';
+const KEY='golfbets.v1';
+const $=s=>document.querySelector(s);
+const uid=()=>Math.random().toString(36).slice(2,10);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const r2=n=>Math.round(n*100)/100;
+const money=n=>(n<-0.004?'−':'')+'$'+(Math.abs(n)%1?Math.abs(n).toFixed(2):Math.abs(n).toFixed(0));
+const rel=n=>n===0?'E':(n>0?'+'+n:'−'+(-n));
+
+// Fines. "first" fines only charge the first player per round; later ones are logged at $0.
+const FINES={
+  triplechip:{label:'First triple chip',icon:'🥄',first:true,kw:['triple chip','triple chipped','3 chip','3 chipped']},
+  cliche:{label:'Golf cliché',icon:'💬',kw:["you'll find it",'youll find it','you will find it',"that'll work",'thatll work','that will work','happy with that','see it bounce','saw it bounce','cliche','cliché']},
+  short:{label:"Short tee shot (didn't pass forward tees)",icon:'🎀',kw:['ladies','ladies tee','forward tee','forward tees','short drive','short tee','short tee shot','red tees','skirt']},
+  tree:{label:'First tree strike',icon:'🌳',first:true,kw:['tree','trees','wood','branch','branches','timber']},
+  bunker:{label:'First bunker',icon:'🏖️',first:true,kw:['bunker','sand','trap','beach']},
+  cart:{label:'First cart-path bounce',icon:'🛣️',first:true,kw:['cart path','cart-path','cartpath','path','asphalt','pavement']},
+  water:{label:'First ball in water',icon:'💧',first:true,kw:['water','lake','pond','creek','river','splash','drink','wet']},
+  tip:{label:'Unsolicited swing tip',icon:'🗣️',kw:['swing tip','tip','tips','lesson','swing advice','advice']},
+  other:{label:'Other fine',icon:'💲',kw:['fine','fined','swear','swore','cursed','cussed']},
+};
+const FINE_ORDER=Object.keys(FINES);
+const BBB=['bingo','bango','bongo'];
+
+const DEF_PARS=[4,4,3,5,4,4,3,4,5], DEF_SI=[1,5,7,3,2,6,9,8,4];
+function mkRound(name,n,prev){
+  const holes=Array.from({length:n},(_,i)=>({par:DEF_PARS[i%9],si:n===18?DEF_SI[i%9]*2-(i<9?1:0):DEF_SI[i]}));
+  return {id:uid(),name,date:new Date().toISOString().slice(0,10),holes,
+    stakes:prev?{...prev.stakes}:{fine:1,net9:5,bbbPt:1,oneClub:5},
+    games:prev?{...prev.games,oneClubHole:null}:{net9:true,bbb:true,oneClubHole:null},
+    jarRule:prev?prev.jarRule:'outright',scores:{},putts:{},bbb:[],cur:0};
+}
+function mkState(){
+  const players=['Lautaro','Ryan','Player 3','Player 4'].map((n,i)=>({id:'p'+(i+1),name:n,aliases:'',hcp:9}));
+  const r=mkRound('East Potomac',9);
+  return {v:1,players,meId:'p1',hrule:{down:0.5,up:0.25,upCap:1},trip:{stringStake:5,stringNet:false},rounds:[r],cur:r.id,events:[],tab:'hole'};
+}
+let S=null;
+try{S=JSON.parse(localStorage.getItem(KEY))}catch(e){}
+if(!S||S.v!==1) S=mkState();
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+const round=()=>S.rounds.find(r=>r.id===S.cur)||S.rounds[0];
+const pname=id=>id==='JAR'?'🫙 Jar':(S.players.find(p=>p.id===id)||{}).name||'?';
+const sc=(r,p,i)=>(r.scores[p]||[])[i]??null;
+const pt=(r,p,i)=>(r.putts[p]||[])[i]??null;
+function setArr(obj,p,i,v,n){if(!obj[p])obj[p]=Array(n).fill(null);obj[p][i]=v}
+
+// ---------- engine: everything derived from raw scores + events, in play order ----------
+function compute(){
+  const P=S.players.map(p=>p.id),H=S.hrule,ledger=[],R={},amt=new Map();
+  const hc={};S.players.forEach(p=>hc[p.id]=+p.hcp||0);
+  const str={};P.forEach(p=>str[p]={cur:0,best:0});
+  let jar=0;
+  for(const r of S.rounds){
+    const n=r.holes.length,fine=+r.stakes.fine||0;
+    const X={segs:[],recv:{},fines:{},bbb:{},firsts:{},oneClub:null,jarWins:[],tot:{},threePutts:{}};
+    R[r.id]=X;
+    P.forEach(p=>{X.recv[p]=Array(n).fill(0);X.fines[p]=0;X.bbb[p]=0;X.threePutts[p]=0;X.tot[p]={gross:0,net:0,par:0,thru:0}});
+    const evs=S.events.filter(e=>e.r===r.id).sort((a,b)=>a.h-b.h||a.t-b.t);
+    for(const e of evs){const f=FINES[e.type];let a=fine;if(f&&f.first){if(X.firsts[e.type])a=0;else X.firsts[e.type]=e.p}amt.set(e.id,a)}
+    for(let s=0;s*9<n;s++){
+      const a=s*9,b=Math.min(n,a+9),idx=[];for(let i=a;i<b;i++)idx.push(i);
+      const rank={};[...idx].sort((x,y)=>r.holes[x].si-r.holes[y].si).forEach((i,k)=>rank[i]=k+1);
+      const seg={a,b,hcp:{},strokes:{},gross:{},net:{},par:0,complete:true,delta:{},after:{}};
+      idx.forEach(i=>seg.par+=r.holes[i].par);
+      P.forEach(p=>{
+        seg.hcp[p]=hc[p];const st=Math.round(hc[p]);seg.strokes[p]=st;
+        idx.forEach(i=>X.recv[p][i]=Math.floor(st/idx.length)+(rank[i]<=st%idx.length?1:0));
+      });
+      for(const i of idx){
+        const par=r.holes[i].par;
+        for(const e of evs)if(e.h===i){const a2=amt.get(e.id);if(a2>0&&X.fines[e.p]!=null){jar+=a2;X.fines[e.p]+=a2;ledger.push({r:r.id,from:e.p,to:'JAR',amt:a2,cat:'Fines'})}}
+        P.forEach(p=>{if(pt(r,p,i)>=3&&fine>0){jar+=fine;X.fines[p]+=fine;X.threePutts[p]++;ledger.push({r:r.id,from:p,to:'JAR',amt:fine,cat:'Fines'})}});
+        const g={};let all=true;
+        P.forEach(p=>{
+          const v=sc(r,p,i);if(v==null){all=false;return}
+          g[p]=v;const net=v-X.recv[p][i],T=X.tot[p];T.gross+=v;T.net+=net;T.par+=par;T.thru++;
+          const val=S.trip.stringNet?net:v;
+          if(val>=par+2)str[p].cur=0;else{str[p].cur++;if(str[p].cur>str[p].best)str[p].best=str[p].cur}
+        });
+        if(all&&P.length){
+          const use={};P.forEach(p=>use[p]=r.jarRule==='net'?g[p]-X.recv[p][i]:g[p]);
+          const m=Math.min(...P.map(p=>use[p])),w=P.filter(p=>use[p]===m);
+          if(w.length===1&&(r.jarRule!=='par'||g[w[0]]<=par)){
+            X.jarWins.push({h:i,p:w[0],amt:jar});
+            if(jar>0)ledger.push({r:r.id,from:'JAR',to:w[0],amt:jar,cat:'Jar'});
+            jar=0;
+          }
+        }
+        const bb=r.bbb[i]||{};BBB.forEach(k=>{if(bb[k]&&X.bbb[bb[k]]!=null)X.bbb[bb[k]]++});
+      }
+      P.forEach(p=>{let G=0,N=0,c=true;idx.forEach(i=>{const v=sc(r,p,i);if(v==null)c=false;else{G+=v;N+=v-X.recv[p][i]}});seg.gross[p]=G;seg.net[p]=N;if(!c)seg.complete=false});
+      if(seg.complete&&P.length){
+        if(r.games.net9&&+r.stakes.net9>0)pairFlat(P,p=>-seg.net[p],+r.stakes.net9,r.id,'Net 9 match',ledger);
+        P.forEach(p=>{
+          const d=seg.net[p]-seg.par;
+          let delta=d<0?d*H.down:Math.min(H.upCap,d*H.up);delta=Math.round(delta*10)/10;
+          seg.delta[p]=delta;hc[p]=Math.max(0,Math.round((hc[p]+delta)*10)/10);seg.after[p]=hc[p];
+        });
+      }
+      X.segs.push(seg);
+    }
+    if(r.games.bbb&&+r.stakes.bbbPt>0)for(let x=0;x<P.length;x++)for(let y=x+1;y<P.length;y++){
+      const d=(X.bbb[P[x]]-X.bbb[P[y]])*r.stakes.bbbPt;
+      if(d>0)ledger.push({r:r.id,from:P[y],to:P[x],amt:d,cat:'Bingo Bango Bongo'});
+      else if(d<0)ledger.push({r:r.id,from:P[x],to:P[y],amt:-d,cat:'Bingo Bango Bongo'});
+    }
+    const oh=r.games.oneClubHole;
+    if(oh!=null&&oh!==''&&r.holes[oh]){
+      const g={};P.forEach(p=>g[p]=sc(r,p,+oh));
+      if(P.every(p=>g[p]!=null)){
+        const m=Math.min(...P.map(p=>g[p])),w=P.filter(p=>g[p]===m);
+        X.oneClub={w,score:m};
+        if(w.length<P.length&&+r.stakes.oneClub>0)P.filter(p=>!w.includes(p)).forEach(l=>w.forEach(wp=>ledger.push({r:r.id,from:l,to:wp,amt:r2(r.stakes.oneClub/w.length),cat:'One-club challenge'})));
+      }
+    }
+  }
+  const best=Math.max(0,...Object.values(str).map(s=>s.best));
+  const leaders=best>0?Object.keys(str).filter(p=>str[p].best===best):[];
+  if(leaders.length&&leaders.length<S.players.length&&+S.trip.stringStake>0)
+    Object.keys(str).filter(p=>!leaders.includes(p)).forEach(l=>leaders.forEach(w=>ledger.push({r:'TRIP',from:l,to:w,amt:r2(S.trip.stringStake/leaders.length),cat:'Unbroken String'})));
+  return {R,ledger,hc,str,jar,amt,leaders};
+}
+// every pair: better score wins a flat stake, ties push
+function pairFlat(P,score,stake,rid,cat,ledger){
+  for(let x=0;x<P.length;x++)for(let y=x+1;y<P.length;y++){
+    const a=score(P[x]),b=score(P[y]);
+    if(a>b)ledger.push({r:rid,from:P[y],to:P[x],amt:stake,cat});else if(b>a)ledger.push({r:rid,from:P[x],to:P[y],amt:stake,cat});
+  }
+}
+function settle(ledger){
+  const bal={};S.players.forEach(p=>bal[p.id]=0);
+  ledger.forEach(l=>{bal[l.from]=(bal[l.from]||0)-l.amt;bal[l.to]=(bal[l.to]||0)+l.amt});
+  for(const k in bal)bal[k]=r2(bal[k]);
+  const cr=[],db=[];for(const k in bal){if(bal[k]>0.004)cr.push([k,bal[k]]);else if(bal[k]<-0.004)db.push([k,-bal[k]])}
+  cr.sort((a,b)=>b[1]-a[1]);db.sort((a,b)=>b[1]-a[1]);
+  const tx=[];let i=0,j=0;
+  while(i<db.length&&j<cr.length){const a=Math.min(db[i][1],cr[j][1]);tx.push({from:db[i][0],to:cr[j][0],amt:r2(a)});db[i][1]-=a;cr[j][1]-=a;if(db[i][1]<0.005)i++;if(cr[j][1]<0.005)j++}
+  return {bal,tx};
+}
+
+// ---------- views ----------
+function render(){
+  document.querySelectorAll('#tabs button').forEach(b=>b.classList.toggle('on',b.dataset.t===S.tab));
+  const C=compute();
+  $('#view').innerHTML=({hole:vHole,board:vBoard,money:vMoney,setup:vSetup}[S.tab]||vHole)(C);
+}
+function scoreCls(d){return d<=-2?'bb':d===-1?'b':d===0?'p':d===1?'o1':'o2'}
+function vHole(C){
+  const r=round(),X=C.R[r.id],i=r.cur,h=r.holes[i],n=r.holes.length,seg=X.segs[Math.floor(i/9)];
+  const isOC=r.games.oneClubHole!=null&&r.games.oneClubHole!==''&&+r.games.oneClubHole===i;
+  let o=`<div class="hh"><button class="nav" data-a="hole" data-d="-1" ${i?'':'disabled'}>‹</button>
+    <div class="hc"><div class="hn">Hole ${i+1}</div><div class="hs">Par <b>${h.par}</b> · SI ${h.si} · ${esc(r.name)}</div></div>
+    <button class="nav" data-a="hole" data-d="1" ${i<n-1?'':'disabled'}>›</button></div>
+    <div class="pills"><span class="pill">🫙 Jar ${money(C.jar)}</span>${isOC?'<span class="pill oc">One-club hole · 7-iron only</span>':''}</div>`;
+  for(const p of S.players){
+    const v=sc(r,p.id,i),pu=pt(r,p.id,i),recv=X.recv[p.id][i],T=X.tot[p.id];
+    const fines=S.events.filter(e=>e.r===r.id&&e.h===i&&e.p===p.id);
+    o+=`<div class="card pc"><div class="pt"><span class="nm">${esc(p.name)}</span><span class="dots">${'●'.repeat(recv)}</span>
+      <span class="meta">hcp ${seg.hcp[p.id]} · ${T.thru?`net ${rel(T.net-T.par)} thru ${T.thru}`:'—'}</span></div>
+      <div class="sr"><button class="stp" data-a="sc" data-p="${p.id}" data-d="-1">−</button>
+      <button class="sv ${v==null?'empty':scoreCls(v-h.par)}" data-a="sc" data-p="${p.id}" data-d="0">${v??'–'}</button>
+      <button class="stp" data-a="sc" data-p="${p.id}" data-d="1">+</button>
+      <button class="fb" data-a="fineSheet" data-p="${p.id}">＋ Fine</button></div>
+      <div class="pu"><span class="lab">Putts</span>${[0,1,2,3,4].map(k=>`<button class="chip ${pu===k?'on':''}" data-a="pu" data-p="${p.id}" data-v="${k}">${k}${k===4?'+':''}</button>`).join('')}</div>
+      ${fines.length||pu>=3?`<div class="fl">${pu>=3?`<span class="ft auto">⛳ 3-putt ${money(+r.stakes.fine)}</span>`:''}${fines.map(e=>`<button class="ft" data-a="delEv" data-id="${e.id}">${FINES[e.type]?.icon||'💲'} ${esc((FINES[e.type]?.label||e.type).replace('First ',''))} ${money(C.amt.get(e.id)||0)} <b>✕</b></button>`).join('')}</div>`:''}
+    </div>`;
+  }
+  if(r.games.bbb){
+    const bb=r.bbb[i]||{};
+    o+=`<div class="card"><h3>Bingo Bango Bongo</h3>${BBB.map((k,ki)=>`<div class="bbr"><span class="lab">${['On first','Closest','In first'][ki]}</span>${S.players.map(p=>`<button class="chip ${bb[k]===p.id?'on':''}" data-a="bbb" data-k="${k}" data-p="${p.id}">${esc(p.name.split(' ')[0])}</button>`).join('')}</div>`).join('')}</div>`;
+  }
+  if(i<n-1)o+=`<button class="big" data-a="hole" data-d="1">Next hole ›</button>`;
+  else o+=`<button class="big" data-a="tab" data-t="money">Round done → Settle up</button>`;
+  return o;
+}
+function roundChips(sel,act){return `<div class="seg">${S.rounds.map(r=>`<button class="chip ${r.id===sel?'on':''}" data-a="${act}" data-id="${r.id}">${esc(r.name)}</button>`).join('')}</div>`}
+function vBoard(C){
+  const r=S.rounds.find(x=>x.id===(S.boardRound||S.cur))||round(),X=C.R[r.id];
+  const ps=[...S.players].sort((a,b)=>{const A=X.tot[a.id],B=X.tot[b.id];return (A.net-A.par)-(B.net-B.par)||B.thru-A.thru});
+  let o=`<h2>Leaderboard</h2>${S.rounds.length>1?roundChips(r.id,'boardRound'):''}
+  <div class="card"><table><tr><th>Player</th><th>Thru</th><th>Gross</th><th>Net</th><th>Hcp now</th></tr>
+  ${ps.map(p=>{const T=X.tot[p.id];return `<tr><td><b>${esc(p.name)}</b></td><td>${T.thru}</td><td>${T.thru?T.gross+' <span class="mut sm">'+rel(T.gross-T.par)+'</span>':'—'}</td><td>${T.thru?'<b>'+rel(T.net-T.par)+'</b>':'—'}</td><td>${C.hc[p.id]}</td></tr>`}).join('')}</table></div>`;
+  X.segs.forEach((g,k)=>{
+    o+=`<div class="card"><h3>${X.segs.length>1?(k?'Back 9':'Front 9'):'9 holes'} · ${g.complete?'final':'in progress'}</h3><table><tr><th>Player</th><th>Gross</th><th>Net</th><th>Hcp</th></tr>
+    ${S.players.map(p=>`<tr><td>${esc(p.name)}</td><td>${g.gross[p.id]||'—'}</td><td>${g.gross[p.id]?g.net[p.id]+' <span class="mut sm">'+rel(g.net[p.id]-g.par)+'</span>':'—'}</td><td>${g.complete?`${g.hcp[p.id]} → <b>${g.after[p.id]}</b>`:g.hcp[p.id]}</td></tr>`).join('')}</table>
+    ${g.complete&&r.games.net9?`<div class="sm mut" style="margin-top:6px">Net 9 match: ${money(+r.stakes.net9)} per head-to-head.</div>`:''}</div>`;
+  });
+  if(r.games.bbb)o+=`<div class="card"><h3>Bingo Bango Bongo</h3><table><tr><th>Player</th><th>Points</th></tr>${[...S.players].sort((a,b)=>X.bbb[b.id]-X.bbb[a.id]).map(p=>`<tr><td>${esc(p.name)}</td><td><b>${X.bbb[p.id]}</b></td></tr>`).join('')}</table></div>`;
+  const oh=r.games.oneClubHole;
+  if(oh!=null&&oh!=='')o+=`<div class="card"><h3>One-club challenge · hole ${+oh+1}</h3>${X.oneClub?`${X.oneClub.w.length===S.players.length?'All tied, no money moves':'Winner'+(X.oneClub.w.length>1?'s (split)':'')+': <b>'+X.oneClub.w.map(pname).map(esc).join(', ')+'</b>'} with ${X.oneClub.score}`:'<span class="mut">Waiting for all scores on that hole.</span>'}</div>`;
+  o+=`<div class="card"><h3>Unbroken String · whole trip</h3><div class="sm mut" style="margin-bottom:6px">Longest run without a ${S.trip.stringNet?'net ':''}double bogey or worse.</div><table><tr><th>Player</th><th>Current</th><th>Best</th></tr>
+  ${[...S.players].sort((a,b)=>C.str[b.id].best-C.str[a.id].best).map(p=>`<tr><td>${C.leaders.includes(p.id)?'🏆 ':''}${esc(p.name)}</td><td>${C.str[p.id].cur}</td><td><b>${C.str[p.id].best}</b></td></tr>`).join('')}</table></div>`;
+  o+=`<div class="card"><h3>Swear jar</h3><div class="jarbig">${money(C.jar)}</div><div class="sm mut">Pays out when someone wins a hole outright${r.jarRule==='par'?' with par or better':r.jarRule==='net'?' on net score':''}.</div>
+  <table style="margin-top:8px"><tr><th>Player</th><th>3-putts</th><th>Fines this round</th></tr>${S.players.map(p=>`<tr><td>${esc(p.name)}</td><td>${X.threePutts[p.id]}</td><td>${money(X.fines[p.id])}</td></tr>`).join('')}</table>
+  ${X.jarWins.length?`<div style="margin-top:8px">${X.jarWins.map(w=>`<div class="sm">Hole ${w.h+1}: <b>${esc(pname(w.p))}</b> won ${w.amt?money(w.amt):'(jar was empty)'}</div>`).join('')}</div>`:''}</div>`;
+  return o;
+}
+function vMoney(C){
+  const scope=S.moneyScope||'round',r=round();
+  const led=scope==='trip'?C.ledger:C.ledger.filter(l=>l.r===r.id);
+  const {bal,tx}=settle(led);
+  const cats=[...new Set(led.map(l=>l.cat))];
+  let o=`<h2>Settle up</h2><div class="seg"><button class="chip ${scope==='round'?'on':''}" data-a="scope" data-v="round">This round</button><button class="chip ${scope==='trip'?'on':''}" data-a="scope" data-v="trip">Whole trip</button></div>
+  <div class="card"><h3>Who pays whom</h3>${tx.length?tx.map(t=>`<div class="tx"><b>${esc(pname(t.from))}</b> → <b>${esc(pname(t.to))}</b><span class="amt">${money(t.amt)}</span></div>`).join(''):'<div class="mut">All square so far.</div>'}
+  ${tx.some(t=>t.to==='JAR')?'<div class="sm mut" style="margin-top:6px">Money to the jar stays in the pot until someone wins it.</div>':''}
+  ${scope==='trip'&&C.leaders.length?'<div class="sm mut" style="margin-top:6px">Includes Unbroken String for the current leader. Final once the trip is over.</div>':''}</div>
+  <div class="card"><h3>Net by game</h3><table><tr><th>Game</th>${S.players.map(p=>`<th>${esc(p.name.split(' ')[0])}</th>`).join('')}</tr>
+  ${cats.map(c=>{const b={};led.filter(l=>l.cat===c).forEach(l=>{b[l.from]=(b[l.from]||0)-l.amt;b[l.to]=(b[l.to]||0)+l.amt});return `<tr><td>${esc(c)}</td>${S.players.map(p=>{const v=r2(b[p.id]||0);return `<td class="${v>0?'pos':v<0?'neg':''}">${v?money(v):'·'}</td>`}).join('')}</tr>`}).join('')}
+  <tr><td><b>Total</b></td>${S.players.map(p=>{const v=bal[p.id]||0;return `<td class="${v>0?'pos':v<0?'neg':''}"><b>${money(v)}</b></td>`}).join('')}</tr></table></div>
+  <button class="big" data-a="share">Share summary</button>`;
+  return o;
+}
+function vSetup(){
+  const r=round(),n=r.holes.length;
+  const num=(path,val,step)=>`<input type="number" inputmode="decimal" step="${step||1}" data-set="${path}" data-ty="num" value="${esc(val)}">`;
+  return `<h2>Setup</h2>
+  <div class="card"><h3>Players</h3><div class="sm mut" style="margin-bottom:8px">Handicap = strokes per 9 holes (≈ half your 18-hole course handicap). Nicknames help the mic, e.g. "Brian, Rye".</div>
+  <div class="prow sm mut"><span>Name</span><span>Mic nicknames</span><span>Hcp/9</span></div>
+  ${S.players.map((p,k)=>`<div class="prow"><input type="text" data-set="players.${k}.name" value="${esc(p.name)}"><input type="text" data-set="players.${k}.aliases" value="${esc(p.aliases)}" placeholder="optional"><input type="number" step="0.5" inputmode="decimal" data-set="players.${k}.hcp" data-ty="num" value="${p.hcp}"></div>`).join('')}
+  <label class="f"><span>Who is "me" / "I" on the mic</span><select data-set="meId">${S.players.map(p=>`<option value="${p.id}" ${S.meId===p.id?'selected':''}>${esc(p.name)}</option>`).join('')}</select></label>
+  <div class="sm mut">Starting handicaps only. The current one updates on its own after each 9.</div></div>
+
+  <div class="card"><h3>Rounds</h3>${roundChips(r.id,'pickRound')}
+  <div class="row"><input type="text" id="nrName" placeholder="Course name" style="flex:1"><select id="nrHoles"><option>9</option><option>18</option></select><button class="btn" data-a="newRound">New round</button></div></div>
+
+  <div class="card"><h3>This round: ${esc(r.name)}</h3>
+  <label class="f"><span>Course name</span><input type="text" data-set="R.name" value="${esc(r.name)}"></label>
+  <label class="f"><span>Fine / swear jar ($)</span>${num('R.stakes.fine',r.stakes.fine,0.5)}</label>
+  <label class="f"><span>Net 9 match, per head-to-head ($)</span>${num('R.stakes.net9',r.stakes.net9,0.5)}</label>
+  <label class="f"><span>Play net 9 matches</span><input type="checkbox" data-set="R.games.net9" data-ty="bool" ${r.games.net9?'checked':''}></label>
+  <label class="f"><span>Play Bingo Bango Bongo</span><input type="checkbox" data-set="R.games.bbb" data-ty="bool" ${r.games.bbb?'checked':''}></label>
+  <label class="f"><span>BBB, per point difference ($)</span>${num('R.stakes.bbbPt',r.stakes.bbbPt,0.5)}</label>
+  <label class="f"><span>One-club (7-iron) hole</span><select data-set="R.games.oneClubHole" data-ty="numOrNull"><option value="">None</option>${r.holes.map((h,i)=>`<option value="${i}" ${+r.games.oneClubHole===i&&r.games.oneClubHole!==null&&r.games.oneClubHole!==''?'selected':''}>Hole ${i+1} (par ${h.par})</option>`).join('')}</select></label>
+  <label class="f"><span>One-club: each loser pays winner ($)</span>${num('R.stakes.oneClub',r.stakes.oneClub,0.5)}</label>
+  <label class="f"><span>Jar pays out when…</span><select data-set="R.jarRule">${[['outright','Outright low gross on a hole'],['par','Outright low gross, par or better'],['net','Outright low net on a hole']].map(([v,l])=>`<option value="${v}" ${r.jarRule===v?'selected':''}>${l}</option>`).join('')}</select></label>
+  <h3 style="margin-top:12px">Scorecard</h3><div class="sm mut" style="margin-bottom:6px">SI = hole handicap from the card (1 = hardest). Strokes go to the hardest holes of each 9.</div>
+  <div class="hg"><b>#</b><b>Par</b><b>SI</b>${r.holes.map((h,i)=>`<span>${i+1}</span>${num(`R.holes.${i}.par`,h.par)}${num(`R.holes.${i}.si`,h.si)}`).join('')}</div>
+  <div class="row" style="margin-top:10px"><button class="btn d" data-a="delRound">Delete this round</button></div></div>
+
+  <div class="card"><h3>Trip</h3>
+  <label class="f"><span>Unbroken String: each player pays the leader ($)</span>${num('trip.stringStake',S.trip.stringStake,0.5)}</label>
+  <label class="f"><span>String counts net doubles (not gross)</span><input type="checkbox" data-set="trip.stringNet" data-ty="bool" ${S.trip.stringNet?'checked':''}></label>
+  <h3 style="margin-top:12px">Handicap after each 9</h3><div class="sm mut">Beat net par by X: hcp drops X × cut rate. Over net par by X: hcp rises X × raise rate, up to the cap.</div>
+  <label class="f"><span>Cut rate</span>${num('hrule.down',S.hrule.down,0.05)}</label>
+  <label class="f"><span>Raise rate</span>${num('hrule.up',S.hrule.up,0.05)}</label>
+  <label class="f"><span>Max raise per 9</span>${num('hrule.upCap',S.hrule.upCap,0.5)}</label></div>
+
+  <div class="card"><h3>Data</h3><div class="row"><button class="btn" data-a="export">Export backup</button><button class="btn" data-a="import">Import</button><button class="btn d" data-a="reset">Reset all</button></div>
+  <input type="file" id="impFile" accept=".json,application/json" hidden></div>`;
+}
+
+// ---------- actions ----------
+let undoSnap=null;
+function snap(){undoSnap=JSON.stringify(S)}
+function commit(){save();render()}
+const ACT={
+  tab:d=>{S.tab=d.t;commit();scrollTo(0,0)},
+  hole:d=>{const r=round();r.cur=Math.max(0,Math.min(r.holes.length-1,r.cur+(+d.d)));commit();scrollTo(0,0)},
+  sc:d=>{const r=round(),i=r.cur,par=r.holes[i].par,v=sc(r,d.p,i);let nv;
+    if(+d.d===0)nv=v==null?par:v;else nv=v==null?par+(+d.d):v+(+d.d);
+    nv=Math.max(1,Math.min(15,nv));setArr(r.scores,d.p,i,nv,r.holes.length);commit()},
+  pu:d=>{const r=round(),i=r.cur,v=pt(r,d.p,i);setArr(r.putts,d.p,i,v===+d.v?null:+d.v,r.holes.length);commit()},
+  bbb:d=>{const r=round(),i=r.cur;r.bbb[i]=r.bbb[i]||{};r.bbb[i][d.k]=r.bbb[i][d.k]===d.p?null:d.p;commit()},
+  fineSheet:d=>openFineSheet(d.p),
+  addFine:d=>{snap();const r=round();S.events.push({id:uid(),t:Date.now(),r:r.id,h:r.cur,p:d.p,type:d.ty,note:''});closeSheet();commit();toast(`${pname(d.p)}: ${FINES[d.ty].label}`,true)},
+  delEv:d=>{snap();S.events=S.events.filter(e=>e.id!==d.id);commit();toast('Fine removed',true)},
+  boardRound:d=>{S.boardRound=d.id;commit()},
+  scope:d=>{S.moneyScope=d.v;commit()},
+  pickRound:d=>{S.cur=d.id;S.boardRound=d.id;commit()},
+  newRound:()=>{const name=$('#nrName').value.trim()||'Round '+(S.rounds.length+1);const r=mkRound(name,+$('#nrHoles').value,round());S.rounds.push(r);S.cur=r.id;S.boardRound=r.id;commit();toast('Started '+name)},
+  delRound:()=>{if(S.rounds.length<2)return toast("Can't delete the only round");const r=round();if(!confirm(`Delete "${r.name}" and all its scores?`))return;snap();S.rounds=S.rounds.filter(x=>x.id!==r.id);S.events=S.events.filter(e=>e.r!==r.id);S.cur=S.rounds[0].id;S.boardRound=null;commit();toast('Round deleted',true)},
+  export:()=>{const b=new Blob([JSON.stringify(S,null,1)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='golf-bets-'+new Date().toISOString().slice(0,10)+'.json';a.click()},
+  import:()=>$('#impFile').click(),
+  reset:()=>{if(!confirm('Erase all rounds, scores and fines?'))return;snap();S=mkState();commit();toast('Reset',true)},
+  share:()=>share(),
+  voice:()=>openVoice(),
+  close:()=>{stopRec();closeSheet()},
+  undo:()=>{if(!undoSnap)return;S=JSON.parse(undoSnap);undoSnap=null;commit();toast('Undone')},
+  vsubmit:()=>{const t=$('#vtext').value.trim();if(t)handleUtterance([t])},
+  vretry:()=>startRec(),
+};
+document.addEventListener('click',e=>{const b=e.target.closest('[data-a]');if(b&&ACT[b.dataset.a])ACT[b.dataset.a](b.dataset,b)});
+document.addEventListener('change',e=>{
+  const el=e.target;
+  if(el.id==='impFile'){const f=el.files[0];if(!f)return;f.text().then(t=>{try{const x=JSON.parse(t);if(x.v!==1)throw 0;snap();S=x;commit();toast('Imported',true)}catch(err){toast("That file isn't a Golf Bets backup")}});return}
+  const path=el.dataset.set;if(!path)return;
+  let v=el.type==='checkbox'?el.checked:el.value;
+  if(el.dataset.ty==='num')v=v===''?0:+v;
+  if(el.dataset.ty==='numOrNull')v=v===''?null:+v;
+  const keys=path.split('.');let o=S;
+  if(keys[0]==='R'){o=round();keys.shift()}
+  for(let k=0;k<keys.length-1;k++)o=o[keys[k]];
+  o[keys[keys.length-1]]=v;commit();
+});
+document.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.id==='vtext')ACT.vsubmit()});
+
+function openSheet(html){$('#sheet').innerHTML=html;$('#sheet').hidden=false;$('#veil').hidden=false}
+function closeSheet(){$('#sheet').hidden=true;$('#veil').hidden=true}
+function openFineSheet(p){
+  const r=round(),C=compute(),X=C.R[r.id];
+  openSheet(`<h2>Fine ${esc(pname(p))} · hole ${r.cur+1}</h2>${FINE_ORDER.map(k=>{const f=FINES[k],taken=f.first&&X.firsts[k];
+    return `<button class="opt" data-a="addFine" data-p="${p}" data-ty="${k}"><span style="font-size:22px">${f.icon}</span>${esc(f.label)}<small>${taken?'taken by '+esc(pname(taken))+' · $0':money(+r.stakes.fine)}</small></button>`}).join('')}
+    <div class="sm mut" style="margin-top:8px">3-putts are fined automatically when you set putts to 3+.</div>`);
+}
+let toastT;
+function toast(msg,undo){const t=$('#toast');t.innerHTML=`<div>${esc(msg)}</div>${undo&&undoSnap?'<button data-a="undo">UNDO</button>':''}`;t.hidden=false;clearTimeout(toastT);toastT=setTimeout(()=>t.hidden=true,undo?6000:2500)}
+function share(){
+  const C=compute(),scope=S.moneyScope||'round',r=round();
+  const led=scope==='trip'?C.ledger:C.ledger.filter(l=>l.r===r.id),{tx}=settle(led),X=C.R[r.id];
+  const lines=[`⛳ ${scope==='trip'?'Golf trip':r.name} settle-up`,...S.players.map(p=>{const T=X.tot[p.id];return `${p.name}: ${T.gross||'-'} gross, net ${T.thru?rel(T.net-T.par):'-'} (hcp now ${C.hc[p.id]})`}),'',
+    ...(tx.length?tx.map(t=>`${pname(t.from).replace('🫙 ','')} → ${pname(t.to).replace('🫙 ','')}: ${money(t.amt)}`):['All square']),`Jar: ${money(C.jar)}`];
+  const text=lines.join('\n');
+  if(navigator.share)navigator.share({text}).catch(()=>{});else navigator.clipboard?.writeText(text).then(()=>toast('Copied to clipboard'));
+}
+
+// ---------- voice: on-device phrase parser (no AI call, instant) ----------
+const NUMW={one:1,two:2,three:3,four:4,five:5,six:6,seven:7,eight:8,nine:9,ten:10,eleven:11,twelve:12};
+const ORDW={first:1,second:2,third:3,fourth:4,fifth:5,sixth:6,seventh:7,eighth:8,ninth:9,tenth:10,eleventh:11,twelfth:12,thirteenth:13,fourteenth:14,fifteenth:15,sixteenth:16,seventeenth:17,eighteenth:18};
+const TERMS=[['quadruple bogey',4],['quad',4],['triple bogey',3],['triple',3],['double bogey',2],['double',2],['bogey',1],['par',0],['birdie',-1],['eagle',-2],['albatross',-3]];
+const reEsc=s=>s.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+const wre=k=>new RegExp('(^|[^a-z0-9])'+reEsc(k)+'(?=$|[^a-z0-9])');
+function lev(a,b){const m=a.length,n=b.length,d=Array.from({length:m+1},(_,i)=>[i]);for(let j=1;j<=n;j++)d[0][j]=j;for(let i=1;i<=m;i++)for(let j=1;j<=n;j++)d[i][j]=Math.min(d[i-1][j]+1,d[i][j-1]+1,d[i-1][j-1]+(a[i-1]===b[j-1]?0:1));return d[m][n]}
+function norm(text){
+  let t=' '+text.toLowerCase().replace(/[’`]/g,"'").replace(/[.,!?;:"]/g,' ').replace(/\s+/g,' ')+' ';
+  t=t.replace(/\b(one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve)\b/g,w=>NUMW[w]);
+  return t;
+}
+function findMentions(t){
+  const out=[];
+  const toks=[...t.matchAll(/[a-z0-9']+/g)].map(m=>({w:m[0],s:m.index,e:m.index+m[0].length}));
+  for(const p of S.players){
+    const terms=[p.name,p.name.split(' ')[0],...String(p.aliases||'').split(',')].map(x=>x.trim().toLowerCase()).filter(x=>x.length>1);
+    for(const term of new Set(terms)){
+      const re=new RegExp('\\b'+reEsc(term)+"('s)?\\b",'g');let m;
+      while((m=re.exec(t)))out.push({p:p.id,s:m.index,e:m.index+m[0].length,exact:1});
+      if(!term.includes(' ')&&term.length>=4)for(const k of toks){const w=k.w.replace(/'s$/,'');if(w!==term&&Math.abs(w.length-term.length)<=2&&lev(w,term)<=(term.length>=7?2:1))out.push({p:p.id,s:k.s,e:k.e,exact:0})}
+    }
+  }
+  for(const k of toks){
+    if(/^(i|i'm|im|me|my|myself|i've|i'd|mine)$/.test(k.w))out.push({p:S.meId,s:k.s,e:k.e,exact:1});
+    if(/^(everyone|everybody)$/.test(k.w))out.push({p:'*',s:k.s,e:k.e,exact:1});
+  }
+  out.sort((a,b)=>a.s-b.s||b.exact-a.exact||(b.e-b.s)-(a.e-a.s));
+  const res=[];for(const m of out){const last=res[res.length-1];if(last&&m.s<last.e)continue;res.push(m)}
+  return res;
+}
+function parseSeg(seg,par){
+  const a={fines:[],putts:null,score:null};let s=' '+seg+' ';
+  let m=s.match(/(?:^|\s)(\d)\s*-?\s*putt(?:s|ed|ing)?\b/)||s.match(/\bputts?\s+(\d)\b/);
+  if(m){a.putts=Math.min(4,+m[1]);s=s.replace(m[0],' ')}
+  for(const k of FINE_ORDER){if(k==='other')continue;for(const kw of FINES[k].kw){const re=wre(kw);if(re.test(s)){a.fines.push(k);s=s.replace(re,'$1 ');break}}}
+  if(!a.fines.length&&FINES.other.kw.some(kw=>wre(kw).test(s)))a.fines.push('other');
+  for(const [w,off] of TERMS){if(wre(w).test(s)){a.score=par+off;s=s.replace(wre(w),'$1 ');break}}
+  if(a.score==null){const n=s.match(/(?:^|[^a-z0-9])(1[0-5]|[1-9])(?![0-9])/);if(n)a.score=+n[1]}
+  return a;
+}
+const segHas=a=>a.fines.length||a.putts!=null||a.score!=null;
+function parseUtterance(text){
+  const r=round(),n=r.holes.length;let t=norm(text);let h=r.cur;const acts=[];
+  if(/\b(next hole|go to next)\b/.test(t)&&!/\bhole \d/.test(t))return{acts:[{k:'nav',h:Math.min(n-1,r.cur+1)}]};
+  if(/\b(previous hole|last hole|go back)\b/.test(t))return{acts:[{k:'nav',h:Math.max(0,r.cur-1)}]};
+  let m=t.match(/\bhole (?:number )?(\d{1,2})\b/)||t.match(/\b(\d{1,2})(?:st|nd|rd|th) hole\b/);
+  if(!m){const o=t.match(/\b(first|second|third|fourth|fifth|sixth|seventh|eighth|ninth|tenth|eleventh|twelfth|thirteenth|fourteenth|fifteenth|sixteenth|seventeenth|eighteenth) hole\b/);if(o)m=[o[0],ORDW[o[1]]]}
+  if(m&&+m[1]>=1&&+m[1]<=n){h=+m[1]-1;t=t.replace(m[0],' ')}
+  t=t.replace(/\b(\d+(?:st|nd|rd|th)?|second|third|fourth|fifth|sixth) (shot|swing|attempt|try)\b/g,' ').replace(/\bthe par \d\b/g,' ').replace(/\bon (the )?(tee|green)\b/g,' ');
+  const par=r.holes[h].par;
+  const ments=findMentions(t);
+  // bingo/bango/bongo go to the nearest name, on the side the speaker uses
+  const bbbHits=[];
+  for(const k of BBB){const re=new RegExp('\\b'+k+'\\b','g');let x;while((x=re.exec(t)))bbbHits.push({k,s:x.index,e:x.index+k.length})}
+  if(bbbHits.length&&ments.length){
+    const after=Math.min(...bbbHits.map(b=>b.s))<ments[0].s;
+    for(const b of bbbHits){
+      const c=after?ments.find(mm=>mm.s>=b.e):[...ments].reverse().find(mm=>mm.e<=b.s);
+      const pick=c||ments.reduce((x,y)=>Math.min(Math.abs(y.s-b.e),Math.abs(y.e-b.s))<Math.min(Math.abs(x.s-b.e),Math.abs(x.e-b.s))?y:x);
+      if(pick.p!=='*')acts.push({k:'bbb',key:b.k,p:pick.p,h});
+    }
+    t=t.replace(/\b(bingo|bango|bongo)\b/g,w=>' '.repeat(w.length));
+  }
+  if(!ments.length)return{acts,err:acts.length?null:"Didn't catch a player name"};
+  const pre=parseSeg(t.slice(0,ments[0].s),par);
+  const valueFirst=segHas(pre);
+  ments.forEach((mm,k)=>{
+    const seg=valueFirst?t.slice(k?ments[k-1].e:0,mm.s):t.slice(mm.e,k<ments.length-1?ments[k+1].s:t.length);
+    const a=parseSeg(seg,par);
+    const ps=mm.p==='*'?S.players.map(p=>p.id):[mm.p];
+    for(const p of ps){
+      if(a.score!=null)acts.push({k:'score',p,h,v:a.score});
+      if(a.putts!=null)acts.push({k:'putts',p,h,v:a.putts});
+      a.fines.forEach(ty=>acts.push({k:'fine',p,h,ty}));
+    }
+  });
+  return{acts,err:acts.length?null:"Heard the name, not what happened"};
+}
+function applyActs(acts,note){
+  const r=round(),n=r.holes.length,out=[];
+  for(const a of acts){
+    if(a.k==='nav'){r.cur=a.h;out.push('Hole '+(a.h+1));continue}
+    const nm=pname(a.p),hh=' (h'+(a.h+1)+')';
+    if(a.k==='score'){setArr(r.scores,a.p,a.h,a.v,n);out.push(`${nm} ${a.v}`+hh)}
+    if(a.k==='putts'){setArr(r.putts,a.p,a.h,a.v,n);out.push(`${nm} ${a.v} putt${a.v===1?'':'s'}`+(a.v>=3?' 🫙':''))}
+    if(a.k==='fine'){S.events.push({id:uid(),t:Date.now(),r:r.id,h:a.h,p:a.p,type:a.ty,note});out.push(`${nm}: ${FINES[a.ty].icon} ${FINES[a.ty].label.replace('First ','')}`+hh)}
+    if(a.k==='bbb'){r.bbb[a.h]=r.bbb[a.h]||{};r.bbb[a.h][a.key]=a.p;out.push(`${a.key[0].toUpperCase()+a.key.slice(1)}: ${nm}`)}
+  }
+  return out.join(' · ');
+}
+function handleUtterance(alts){
+  let best=null;
+  for(const a of alts){const p=parseUtterance(a);if(!p.err){best={text:a,p};break}if(!best)best={text:a,p}}
+  if(!best||best.p.err){showVoice(alts[0]||'',best?best.p.err:'Nothing heard');return}
+  snap();const msg=applyActs(best.p.acts,best.text);closeSheet();commit();toast('✓ '+msg,true);
+}
+const SR=window.SpeechRecognition||window.webkitSpeechRecognition;let rec=null;
+function showVoice(heard,err,live){
+  openSheet(`<h2>${live?'Listening…':'Say it or type it'}</h2><div class="heard">${esc(heard||'')}</div>
+  ${err?`<div class="neg" style="margin-bottom:8px">${esc(err)}. Fix the text or try again.</div>`:''}
+  <div class="vrow"><input type="text" id="vtext" value="${esc(heard||'')}" placeholder="Ryan hit a tree on hole 4"><button class="btn" data-a="vsubmit">Log</button></div>
+  <div class="row" style="margin-top:8px">${SR?'<button class="btn" data-a="vretry">🎤 Again</button>':''}<button class="btn" data-a="close">Cancel</button></div>
+  <div class="sm mut" style="margin-top:10px">Try: "Ryan 5, two putts" · "I three putted" · "Ryan hit a tree on hole 4" · "Bingo Ryan, bango me, bongo Mike" · "everyone par" · "Ryan said you'll find it" · "next hole"</div>`);
+}
+function openVoice(){if(SR)startRec();else{showVoice('',"This browser has no speech input. Type instead");setTimeout(()=>$('#vtext')?.focus(),50)}}
+function stopRec(){try{rec&&rec.abort()}catch(e){}rec=null;$('#mic').classList.remove('live')}
+function startRec(){
+  stopRec();rec=new SR();rec.lang='en-US';rec.interimResults=true;rec.maxAlternatives=4;rec.continuous=false;
+  let done=false;showVoice('',null,true);$('#mic').classList.add('live');
+  rec.onresult=e=>{const res=e.results[e.results.length-1];
+    if(res.isFinal){done=true;stopRec();handleUtterance([...res].map(x=>x.transcript))}
+    else{const h=$('.heard');if(h)h.textContent=[...e.results].map(x=>x[0].transcript).join(' ')}};
+  rec.onerror=e=>{done=true;stopRec();showVoice('',e.error==='not-allowed'?'Microphone permission blocked':e.error==='no-speech'?'Heard nothing':'Mic error: '+e.error)};
+  rec.onend=()=>{$('#mic').classList.remove('live');if(!done&&!$('#sheet').hidden&&$('#sheet h2')?.textContent==='Listening…')showVoice('','Heard nothing')};
+  try{rec.start()}catch(e){showVoice('','Could not start the mic')}
+}
+
+render();
+if('serviceWorker' in navigator&&location.protocol.startsWith('http'))navigator.serviceWorker.register('sw.js').catch(()=>{});
+</script>
+</body>
+</html>
