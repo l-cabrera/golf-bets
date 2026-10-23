@@ -182,6 +182,7 @@ const JAR_RULES={
 const fineKind=t=>(FINES[t]&&FINES[t].kind)||'fine';
 const HELP={
   net9:s=>`Every 9 holes, each player goes head-to-head against each of the others using their score after handicap strokes. Win a head-to-head and that player pays you ${money(s)}. Tie and no money moves.`,
+  ball:s=>`Everyone marks a ball on hole 1. Your ball is out the first time you log a Lost ball / OB. The last player still holding their marked ball collects ${money(s)} from each other player. If everyone loses theirs, whoever held out longest wins. If two or more still have theirs at the end of the round, they split it.`,
   bbb:s=>`3 points on every hole. <b>Bingo</b>: first ball on the green. <b>Bango</b>: closest to the pin once everyone is on. <b>Bongo</b>: first to hole out. Whoever is farthest from the hole always plays first. At the end you collect ${money(s)} for every point you're ahead of each player, and pay the same for every point you're behind.`,
 };
 
@@ -203,8 +204,8 @@ function mkRound(name,n,prev){
   const holes=Array.from({length:n},(_,i)=>({par:DEF_PARS[i%9],si:n===18?DEF_SI[i%9]*2-(i<9?1:0):DEF_SI[i]}));
   const c=COURSES[name];if(c&&c.par.length===n)c.par.forEach((p,i)=>holes[i]={par:p,si:c.si[i]});
   return {id:uid(),name,date:new Date().toISOString().slice(0,10),holes,
-    stakes:prev?{gir:1,...prev.stakes}:{fine:1,net9:5,bbbPt:1,oneClub:5,gir:1},
-    games:prev?{...prev.games,oneClubHole:null}:{net9:true,bbb:true,oneClubHole:null},
+    stakes:prev?{gir:1,ball:1,...prev.stakes}:{fine:1,net9:5,bbbPt:1,oneClub:5,gir:1,ball:1},
+    games:prev?{ball:true,...prev.games,oneClubHole:null}:{net9:true,bbb:true,ball:true,oneClubHole:null},
     jarRule:prev?prev.jarRule:'outright',scores:{},putts:{},bbb:[],cur:0};
 }
 function mkState(){
@@ -239,7 +240,7 @@ function compute(){
   let jar=0;
   for(const r of S.rounds){
     const n=r.holes.length,fine=+r.stakes.fine||0;
-    const X={segs:[],recv:{},fines:{},bbb:{},firsts:{},firstHole:{},oneClub:null,jarWins:[],tot:{},threePutts:{},lost:{},pen:{},won:{},complete:true};
+    const X={segs:[],recv:{},fines:{},bbb:{},firsts:{},firstHole:{},oneClub:null,ball:null,jarWins:[],tot:{},threePutts:{},lost:{},pen:{},won:{},complete:true};
     R[r.id]=X;
     P.forEach(p=>{X.recv[p]=Array(n).fill(0);X.fines[p]=0;X.bbb[p]=0;X.threePutts[p]=0;X.lost[p]=0;X.pen[p]=0;X.won[p]=0;X.tot[p]={gross:0,net:0,par:0,thru:0}});
     const evs=S.events.filter(e=>e.r===r.id).sort((a,b)=>a.h-b.h||a.t-b.t);
@@ -305,6 +306,19 @@ function compute(){
       const d=(X.bbb[P[x]]-X.bbb[P[y]])*r.stakes.bbbPt;
       if(d>0)ledger.push({r:r.id,from:P[y],to:P[x],amt:d,cat:'Bingo Bango Bongo'});
       else if(d<0)ledger.push({r:r.id,from:P[x],to:P[y],amt:-d,cat:'Bingo Bango Bongo'});
+    }
+    // Longest ball: your marked ball is out at your first Lost ball / OB; last one still holding theirs wins.
+    // Everyone out → whoever lost theirs latest wins. Several still in at the end of the round → they split it.
+    if(r.games.ball){
+      const out={};
+      for(const e of evs)if(e.type==='lost'&&X.fines[e.p]!=null&&!out[e.p])out[e.p]={h:e.h,t:e.t};
+      const alive=P.filter(p=>!out[p]);
+      let w=null;
+      if(alive.length===1||(alive.length>1&&X.complete))w=alive;
+      else if(!alive.length){const last=P.reduce((a,p)=>!a||out[p].h>out[a].h||(out[p].h===out[a].h&&out[p].t>out[a].t)?p:a,null);w=[last]}
+      X.ball={out,alive,w};
+      const stake=+(r.stakes.ball??1)||0;
+      if(w&&w.length<P.length&&stake>0)P.filter(p=>!w.includes(p)).forEach(l=>w.forEach(wp=>ledger.push({r:r.id,from:l,to:wp,amt:r2(stake/w.length),cat:'Longest ball'})));
     }
     const oh=r.games.oneClubHole;
     if(oh!=null&&oh!==''&&r.holes[oh]){
@@ -372,7 +386,7 @@ function vHole(C){
     <div class="hc"><div class="hn">Hole ${i+1}</div><div class="hs">Par <b>${h.par}</b> · SI ${h.si} · ${esc(r.name)}</div></div>
     <button class="nav" data-a="hole" data-d="1" ${i<n-1?'':'disabled'}>›</button></div>
     ${FB_CONFIG&&!S.share&&!hasData(r)?'<button class="big" style="background:var(--blue);margin:0 0 10px" data-a="shareLive">📤 Share live link with the group</button>':''}
-    <div class="pills"><span class="pill">🫙 Jar ${money(C.jar)}</span>${X.jarWins.filter(w=>w.h===i&&!w.end&&w.amt>0).map(w=>`<span class="pill">🏆 ${esc(pname(w.p))} won ${money(w.amt)} here</span>`).join('')}${isOC?'<span class="pill oc">One-club hole · 7-iron only</span>':''}</div>`;
+    <div class="pills"><span class="pill">🫙 Jar ${money(C.jar)}</span>${X.jarWins.filter(w=>w.h===i&&!w.end&&w.amt>0).map(w=>`<span class="pill">🏆 ${esc(pname(w.p))} won ${money(w.amt)} here</span>`).join('')}${isOC?'<span class="pill oc">One-club hole · 7-iron only</span>':''}${X.ball?`<span class="pill oc">⚪ ${X.ball.w?`Longest ball: ${esc(X.ball.w.map(pname).join(' & '))}`:`Marked balls left: ${X.ball.alive.length}`}</span>`:''}</div>`;
   for(const p of S.players){
     const v=sc(r,p.id,i),pu=pt(r,p.id,i),recv=X.recv[p.id][i],T=X.tot[p.id];
     const fines=S.events.filter(e=>e.r===r.id&&e.h===i&&e.p===p.id);
@@ -422,6 +436,10 @@ function vBoard(C){
     ${r.games.net9?`<div class="sm mut" style="margin-top:6px"><b>Net 9 match:</b> ${HELP.net9(+r.stakes.net9)}</div>`:''}</div>`;
   });
   if(r.games.bbb)o+=`<div class="card"><h3>Bingo Bango Bongo</h3><div class="sm mut" style="margin-bottom:6px">${HELP.bbb(+r.stakes.bbbPt)}</div><table><tr><th>Player</th><th>Points</th></tr>${[...S.players].sort((a,b)=>X.bbb[b.id]-X.bbb[a.id]).map(p=>`<tr><td>${esc(p.name)}</td><td><b>${X.bbb[p.id]}</b></td></tr>`).join('')}</table></div>`;
+  if(X.ball){const B=X.ball;
+    o+=`<div class="card"><h3>Longest ball · last man standing</h3><div class="sm mut" style="margin-bottom:6px">${HELP.ball(+(r.stakes.ball??1))}</div>
+    <table><tr><th>Player</th><th>Marked ball</th></tr>${S.players.map(p=>`<tr><td>${B.w&&B.w.includes(p.id)?'🏆 ':''}${esc(p.name)}</td><td>${B.out[p.id]?`lost on hole ${B.out[p.id].h+1}`:'<b>still in play</b>'}</td></tr>`).join('')}</table>
+    ${B.w?`<div class="sm" style="margin-top:6px">Winner${B.w.length>1?'s (split)':''}: <b>${esc(B.w.map(pname).join(' & '))}</b></div>`:''}</div>`}
   const oh=r.games.oneClubHole;
   if(oh!=null&&oh!=='')o+=`<div class="card"><h3>One-club challenge · hole ${+oh+1}</h3>${X.oneClub?`${X.oneClub.w.length===S.players.length?'All tied, no money moves':'Winner'+(X.oneClub.w.length>1?'s (split)':'')+': <b>'+X.oneClub.w.map(pname).map(esc).join(', ')+'</b>'} with ${X.oneClub.score}`:'<span class="mut">Waiting for all scores on that hole.</span>'}</div>`;
   o+=`<div class="card"><h3>Unbroken String · whole trip</h3><div class="sm mut" style="margin-bottom:6px">Longest run of holes, across the whole trip, without a double bogey or worse${S.trip.stringNet?', counted after handicap strokes':' (actual strokes, no handicap)'}.</div><table><tr><th>Player</th><th>Current</th><th>Best</th></tr>
@@ -455,7 +473,7 @@ const hasData=r=>Object.values(r.scores).some(a=>a.some(v=>v!=null))||S.events.s
 function mkDraft(){
   const r=round();
   return {course:COURSES[r.name]?r.name:'East Potomac – White',custom:'',holes:9,
-    stakes:{...r.stakes},games:{net9:r.games.net9,bbb:r.games.bbb,oneClubHole:null},jarRule:r.jarRule};
+    stakes:{ball:1,...r.stakes},games:{net9:r.games.net9,bbb:r.games.bbb,ball:r.games.ball??true,oneClubHole:null},jarRule:r.jarRule};
 }
 function liveBlock(){
   if(!FB_CONFIG)return'';
@@ -485,6 +503,7 @@ function vHome(C){
   <label class="f"><span>Swear jar fine</span>$ ${num('draft.stakes.fine',D.stakes.fine)}</label>
   <label class="f"><input type="checkbox" data-set="draft.games.net9" data-ty="bool" ${D.games.net9?'checked':''}><span>Net 9 matches, per head-to-head</span>$ ${num('draft.stakes.net9',D.stakes.net9)}</label>
   <label class="f"><input type="checkbox" data-set="draft.games.bbb" data-ty="bool" ${D.games.bbb?'checked':''}><span>Bingo Bango Bongo, per point</span>$ ${num('draft.stakes.bbbPt',D.stakes.bbbPt)}</label>
+  <label class="f"><input type="checkbox" data-set="draft.games.ball" data-ty="bool" ${D.games.ball!==false?'checked':''}><span>Longest ball (mark on hole 1), each pays the last one standing</span>$ ${num('draft.stakes.ball',D.stakes.ball??1)}</label>
   <label class="f"><span>First green in regulation, each pays</span>$ ${num('draft.stakes.gir',D.stakes.gir??1)}</label>
   <label class="f"><span>One-club (7-iron) hole</span><select data-set="draft.games.oneClubHole" data-ty="numOrNull"><option value="">None</option>${Array.from({length:cn},(_,i)=>`<option value="${i}" ${D.games.oneClubHole===i?'selected':''}>Hole ${i+1}</option>`).join('')}</select></label>
   ${D.games.oneClubHole!=null?`<label class="f"><span>One-club: each loser pays winner</span>$ ${num('draft.stakes.oneClub',D.stakes.oneClub)}</label>`:''}
@@ -528,9 +547,11 @@ function vSetup(){
   <label class="f"><span>One-club (7-iron) hole</span><select data-set="R.games.oneClubHole" data-ty="numOrNull"><option value="">None</option>${r.holes.map((h,i)=>`<option value="${i}" ${+r.games.oneClubHole===i&&r.games.oneClubHole!==null&&r.games.oneClubHole!==''?'selected':''}>Hole ${i+1} (par ${h.par})</option>`).join('')}</select></label>
   <label class="f"><span>One-club: each loser pays winner ($)</span>${num('R.stakes.oneClub',r.stakes.oneClub,0.5)}</label>
   <label class="f"><span>First green in regulation: each player pays ($)</span>${num('R.stakes.gir',r.stakes.gir??1,0.5)}</label>
+  <label class="f"><span>Play Longest ball (last marked ball standing)</span><input type="checkbox" data-set="R.games.ball" data-ty="bool" ${r.games.ball?'checked':''}></label>
+  <label class="f"><span>Longest ball: each player pays the winner ($)</span>${num('R.stakes.ball',r.stakes.ball??1,0.5)}</label>
   <div style="margin-top:10px"><b>Who wins the jar</b></div><select data-set="R.jarRule" style="width:100%;margin:6px 0">${Object.entries(JAR_RULES).map(([v,[l]])=>`<option value="${v}" ${r.jarRule===v?'selected':''}>${l}</option>`).join('')}</select>
   <div class="sm mut">${(JAR_RULES[r.jarRule]||JAR_RULES.outright)[1]}</div>
-  <details class="sm" style="margin-top:10px"><summary><b>How Net 9 and BBB work</b></summary><p class="mut"><b>Net 9:</b> ${HELP.net9(+r.stakes.net9)}</p><p class="mut"><b>Bingo Bango Bongo:</b> ${HELP.bbb(+r.stakes.bbbPt)}</p></details>
+  <details class="sm" style="margin-top:10px"><summary><b>How Net 9, BBB and Longest ball work</b></summary><p class="mut"><b>Longest ball:</b> ${HELP.ball(+(r.stakes.ball??1))}</p><p class="mut"><b>Net 9:</b> ${HELP.net9(+r.stakes.net9)}</p><p class="mut"><b>Bingo Bango Bongo:</b> ${HELP.bbb(+r.stakes.bbbPt)}</p></details>
   <h3 style="margin-top:12px">Scorecard</h3><div class="sm mut" style="margin-bottom:6px">SI = hole handicap from the card (1 = hardest). Strokes go to the hardest holes of each 9.</div>
   <div class="row" style="margin-bottom:8px"><select id="ldCourse" style="flex:1;min-width:0">${Object.keys(COURSES).filter(k=>COURSES[k].par.length===n).map(k=>`<option ${k===r.name?'selected':''}>${esc(k)}</option>`).join('')}</select><button class="btn" data-a="loadCourse">Load card</button></div>
   <div class="hg"><b>#</b><b>Par</b><b>SI</b>${r.holes.map((h,i)=>`<span>${i+1}</span>${num(`R.holes.${i}.par`,h.par)}${num(`R.holes.${i}.si`,h.si)}`).join('')}</div>
@@ -577,7 +598,7 @@ const ACT={
     if(hasData(r)){r=mkRound(name,n);S.rounds.push(r)}
     else{const fresh=mkRound(name,n);fresh.id=r.id;Object.assign(r,fresh)}
     r.stakes={...D.stakes};r.jarRule=D.jarRule;
-    r.games={net9:D.games.net9,bbb:D.games.bbb,oneClubHole:D.games.oneClubHole!=null&&D.games.oneClubHole<n?D.games.oneClubHole:null};
+    r.games={net9:D.games.net9,bbb:D.games.bbb,ball:D.games.ball!==false,oneClubHole:D.games.oneClubHole!=null&&D.games.oneClubHole<n?D.games.oneClubHole:null};
     S.cur=r.id;S.boardRound=r.id;r.cur=0;S.draft=null;S.draftOpen=false;S.tab='hole';commit();scrollTo(0,0);toast(`${name}: tee off! 🏌️`);
   },
   delRound:()=>{const r=round(),last=S.rounds.length<2;
