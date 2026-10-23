@@ -25,6 +25,18 @@ nav#tabs button{flex:1;border:0;background:none;padding:9px 0 11px;font-size:12p
 nav#tabs button span{font-size:20px}
 nav#tabs button.on{color:var(--g)}
 nav#tabs .gap{flex:0 0 84px}
+body.viewer #mic,body.viewer nav#tabs [data-t=home],body.viewer nav#tabs [data-t=hole],body.viewer nav#tabs .gap{display:none}
+body.viewer main{padding-bottom:90px}
+.viewbar{background:var(--bl);color:var(--blue);border-radius:12px;padding:8px 12px;font-size:13px;margin-bottom:10px}
+.live{font-size:13px;margin:8px 0 2px}
+table.sc{table-layout:fixed;font-size:13px;margin-bottom:8px}
+table.sc th,table.sc td{text-align:center;padding:4px 0}
+table.sc th:first-child,table.sc td:first-child{width:56px;text-align:left}
+table.sc th:last-child,table.sc td:last-child{width:34px}
+table.sc tr.par td{color:var(--mut)}
+table.sc th.curh{color:var(--g);text-decoration:underline}
+.sx{display:inline-block;min-width:20px;border-radius:6px;font-weight:700}
+.sx.b{background:var(--gl);color:var(--g)}.sx.bb{background:var(--g);color:var(--card)}.sx.o1{background:var(--yl);color:var(--gold)}.sx.o2{background:var(--rl);color:var(--red)}
 #mic{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(14px + env(safe-area-inset-bottom));border:4px solid var(--bg)!important;width:66px;height:66px;border-radius:50%;border:0;background:var(--acc);color:#fff;box-shadow:0 6px 18px rgba(0,0,0,.28);z-index:7;display:grid;place-items:center}
 #mic svg{width:30px;height:30px}
 #mic.live{background:#dc2626;animation:pulse 1s infinite}
@@ -199,14 +211,17 @@ function mkState(){
   const r=mkRound('East Potomac – White',9);
   return {v:1,players,meId:'p1',hrule:{down:0.5,up:0.25,upCap:1},trip:{stringStake:5,stringNet:true},stringNetSet:1,rounds:[r],cur:r.id,events:[],tab:'home'};
 }
+// ?view=<id> opens a read-only live copy of someone's trip; it never reads or writes this phone's own data
+const VIEW=new URLSearchParams(location.search).get('view');
 let S=null;
-try{S=JSON.parse(localStorage.getItem(KEY))}catch(e){}
+if(!VIEW)try{S=JSON.parse(localStorage.getItem(KEY))}catch(e){}
 if(!S||S.v!==1) S=mkState();
+if(VIEW)S.tab='board';
 // phones that opened v1 have the placeholder card on an untouched first round: swap in White
 {const r0=S.rounds[0];if(r0&&r0.name==='East Potomac'&&!Object.keys(r0.scores).length&&r0.holes.every((h,i)=>h.par===DEF_PARS[i]&&h.si===DEF_SI[i])){r0.name='East Potomac – White';const c=COURSES[r0.name];r0.holes=c.par.map((p,i)=>({par:p,si:c.si[i]}))}}
 // one-time: the Unbroken String now counts handicap strokes by default (the Settings toggle still wins afterwards)
 if(!S.stringNetSet){S.trip.stringNet=true;S.stringNetSet=1}
-function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+function save(){if(VIEW)return;try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}queuePush()}
 const round=()=>S.rounds.find(r=>r.id===S.cur)||S.rounds[0];
 // round shown on Board/Money (can be a past one); the round being played stays S.cur
 const viewRound=()=>S.rounds.find(r=>r.id===S.boardRound)||round();
@@ -327,8 +342,12 @@ function settle(ledger){
 // ---------- views ----------
 function render(){
   document.querySelectorAll('#tabs button').forEach(b=>b.classList.toggle('on',b.dataset.t===S.tab));
+  if(VIEW&&(!viewMeta.loaded||viewMeta.missing)){
+    $('#view').innerHTML=`<div class="card" style="margin-top:40px;text-align:center">${viewMeta.missing?'This live link isn\'t active anymore, or the address got cut off. Ask for the link again.':'Loading the live round…'}</div>`;return;
+  }
+  if(VIEW&&!['board','money'].includes(S.tab))S.tab='board';
   const C=compute();
-  $('#view').innerHTML=({home:vHome,hole:vHole,board:vBoard,money:vMoney,setup:vSetup}[S.tab]||vHome)(C);
+  $('#view').innerHTML=(VIEW?`<div id="viewbar" class="viewbar">${viewBar()}</div>`:'')+({home:vHome,hole:vHole,board:vBoard,money:vMoney,setup:vSetup}[S.tab]||vHome)(C);
   announceJar(C);
 }
 // shout when a jar payout appears that wasn't there before (first render just records what exists)
@@ -351,6 +370,7 @@ function vHole(C){
   let o=`<div class="hh"><button class="nav" data-a="hole" data-d="-1" ${i?'':'disabled'}>‹</button>
     <div class="hc"><div class="hn">Hole ${i+1}</div><div class="hs">Par <b>${h.par}</b> · SI ${h.si} · ${esc(r.name)}</div></div>
     <button class="nav" data-a="hole" data-d="1" ${i<n-1?'':'disabled'}>›</button></div>
+    ${FB_CONFIG&&!S.share&&!hasData(r)?'<button class="big" style="background:var(--blue);margin:0 0 10px" data-a="shareLive">📤 Share live link with the group</button>':''}
     <div class="pills"><span class="pill">🫙 Jar ${money(C.jar)}</span>${X.jarWins.filter(w=>w.h===i&&!w.end&&w.amt>0).map(w=>`<span class="pill">🏆 ${esc(pname(w.p))} won ${money(w.amt)} here</span>`).join('')}${isOC?'<span class="pill oc">One-club hole · 7-iron only</span>':''}</div>`;
   for(const p of S.players){
     const v=sc(r,p.id,i),pu=pt(r,p.id,i),recv=X.recv[p.id][i],T=X.tot[p.id];
@@ -375,15 +395,29 @@ function vHole(C){
   return o;
 }
 function roundChips(sel,act){return `<div class="seg">${S.rounds.map(r=>`<button class="chip ${r.id===sel?'on':''}" data-a="${act}" data-id="${r.id}">${esc(r.name)}</button>`).join('')}</div>`}
+// hole-by-hole gross scores, one table per nine, coloured by score vs par
+function scorecard(r){
+  let o='';
+  for(let s=0;s*9<r.holes.length;s++){
+    const idx=[];for(let i=s*9;i<Math.min(r.holes.length,s*9+9);i++)idx.push(i);
+    o+=`<table class="sc"><tr><th>${r.holes.length>9?(s?'In':'Out'):'Hole'}</th>${idx.map(i=>`<th class="${i===r.cur&&r.id===S.cur?'curh':''}">${i+1}</th>`).join('')}<th>Tot</th></tr>
+    <tr class="par"><td>Par</td>${idx.map(i=>`<td>${r.holes[i].par}</td>`).join('')}<td>${idx.reduce((a,i)=>a+r.holes[i].par,0)}</td></tr>
+    ${S.players.map(p=>{let t=0,any=false;
+      const cells=idx.map(i=>{const v=sc(r,p.id,i);if(v==null)return'<td></td>';t+=v;any=true;return `<td><span class="sx ${scoreCls(v-r.holes[i].par)}">${v}</span></td>`}).join('');
+      return `<tr><td>${esc(p.name.split(' ')[0])}</td>${cells}<td><b>${any?t:''}</b></td></tr>`}).join('')}</table>`;
+  }
+  return o;
+}
 function vBoard(C){
   const r=viewRound(),X=C.R[r.id];
   const ps=[...S.players].sort((a,b)=>{const A=X.tot[a.id],B=X.tot[b.id];return (A.net-A.par)-(B.net-B.par)||B.thru-A.thru});
   let o=`<h2>Leaderboard</h2>${S.rounds.length>1?roundChips(r.id,'boardRound'):''}
   <div class="card"><table><tr><th>Player</th><th>Thru</th><th>Gross</th><th>Net</th><th>Hcp now</th></tr>
-  ${ps.map(p=>{const T=X.tot[p.id];return `<tr><td><b>${esc(p.name)}</b></td><td>${T.thru}</td><td>${T.thru?T.gross+' <span class="mut sm">'+rel(T.gross-T.par)+'</span>':'—'}</td><td>${T.thru?'<b>'+rel(T.net-T.par)+'</b>':'—'}</td><td>${C.hc[p.id]}</td></tr>`}).join('')}</table></div>`;
+  ${ps.map(p=>{const T=X.tot[p.id];return `<tr><td><b>${esc(p.name)}</b></td><td>${T.thru}</td><td>${T.thru?T.gross+' <span class="mut sm">'+rel(T.gross-T.par)+'</span>':'—'}</td><td>${T.thru?'<b>'+rel(T.net-T.par)+'</b>':'—'}</td><td>${C.hc[p.id]}</td></tr>`}).join('')}</table></div>
+  <div class="card"><h3>Scorecard · ${esc(r.name)}</h3>${scorecard(r)}</div>`;
   X.segs.forEach((g,k)=>{
     o+=`<div class="card"><h3>${X.segs.length>1?(k?'Back 9':'Front 9'):'9 holes'} · ${g.complete?'final':'in progress'}</h3><table><tr><th>Player</th><th>Gross</th><th>Net</th><th>Hcp</th></tr>
-    ${S.players.map(p=>`<tr><td>${esc(p.name)}</td><td>${g.gross[p.id]||'—'}</td><td>${g.gross[p.id]?g.net[p.id]+' <span class="mut sm">'+rel(g.net[p.id]-g.par)+'</span>':'—'}</td><td>${g.complete?`${g.hcp[p.id]} → <b>${g.after[p.id]}</b>`:g.hcp[p.id]}</td></tr>`).join('')}</table>
+    ${S.players.map(p=>{let pp=0;for(let i=g.a;i<g.b;i++)if(sc(r,p.id,i)!=null)pp+=r.holes[i].par;return `<tr><td>${esc(p.name)}</td><td>${g.gross[p.id]||'—'}</td><td>${g.gross[p.id]?g.net[p.id]+' <span class="mut sm">'+rel(g.net[p.id]-pp)+'</span>':'—'}</td><td>${g.complete?`${g.hcp[p.id]} → <b>${g.after[p.id]}</b>`:g.hcp[p.id]}</td></tr>`}).join('')}</table>
     ${r.games.net9?`<div class="sm mut" style="margin-top:6px"><b>Net 9 match:</b> ${HELP.net9(+r.stakes.net9)}</div>`:''}</div>`;
   });
   if(r.games.bbb)o+=`<div class="card"><h3>Bingo Bango Bongo</h3><div class="sm mut" style="margin-bottom:6px">${HELP.bbb(+r.stakes.bbbPt)}</div><table><tr><th>Player</th><th>Points</th></tr>${[...S.players].sort((a,b)=>X.bbb[b.id]-X.bbb[a.id]).map(p=>`<tr><td>${esc(p.name)}</td><td><b>${X.bbb[p.id]}</b></td></tr>`).join('')}</table></div>`;
@@ -412,7 +446,7 @@ function vMoney(C){
   <div class="card"><h3>Net by game</h3><table class="money"><tr><th>Game</th>${S.players.map(p=>`<th>${esc(p.name.split(' ')[0])}</th>`).join('')}</tr>
   ${cats.map(c=>{const b={};led.filter(l=>l.cat===c).forEach(l=>{b[l.from]=(b[l.from]||0)-l.amt;b[l.to]=(b[l.to]||0)+l.amt});return `<tr><td>${esc(c)}</td>${S.players.map(p=>{const v=r2(b[p.id]||0);return `<td class="${v>0?'pos':v<0?'neg':''}">${v?money(v):'·'}</td>`}).join('')}</tr>`}).join('')}
   <tr><td><b>Total</b></td>${S.players.map(p=>{const v=bal[p.id]||0;return `<td class="${v>0?'pos':v<0?'neg':''}"><b>${money(v)}</b></td>`}).join('')}</tr></table></div>
-  <button class="big" data-a="share">Share summary</button>`;
+  <button class="big" data-a="share">Share summary</button>${VIEW?'':`<div class="card" style="margin-top:10px">${liveBlock()}</div>`}`;
   return o;
 }
 const hasData=r=>Object.values(r.scores).some(a=>a.some(v=>v!=null))||S.events.some(e=>e.r===r.id)||r.bbb.some(Boolean);
@@ -420,6 +454,12 @@ function mkDraft(){
   const r=round();
   return {course:COURSES[r.name]?r.name:'East Potomac – White',custom:'',holes:9,
     stakes:{...r.stakes},games:{net9:r.games.net9,bbb:r.games.bbb,oneClubHole:null},jarRule:r.jarRule};
+}
+function liveBlock(){
+  if(!FB_CONFIG)return'';
+  return S.share
+    ?`<div class="live mut" id="livestat">${liveStatus()}</div><button class="btn" style="width:100%;margin-top:4px" data-a="shareLive">📤 Send the live link again</button>`
+    :`<button class="big" style="background:var(--blue);margin-top:8px" data-a="shareLive">📤 Share live link with the group</button><div class="sm mut" style="margin-top:4px">They see scores, the jar and the money live, read-only, with no app needed.</div>`;
 }
 function vHome(C){
   const r=round(),X=C.R[r.id],started=hasData(r),anyData=S.rounds.some(hasData);
@@ -430,7 +470,7 @@ function vHome(C){
   let o=`<div class="row" style="justify-content:space-between;margin-bottom:6px"><h2 style="margin:0">⛳ Golf Bets</h2><button class="btn" data-a="tab" data-t="setup">⚙️ Settings</button></div>`;
   if(started)o+=`<div class="card"><h3>Round in progress</h3><div style="font-size:19px;font-weight:800">${esc(r.name)}</div>
     <div class="mut sm">Thru ${thru} of ${r.holes.length} · Jar ${money(C.jar)}</div>
-    <button class="big" data-a="tab" data-t="hole">Continue on hole ${r.cur+1} ›</button></div>`;
+    <button class="big" data-a="tab" data-t="hole">Continue on hole ${r.cur+1} ›</button>${liveBlock()}</div>`;
   o+=`<${started?'details':'div'} class="card" ${started&&S.draftOpen?'open':''} data-tog="draftOpen">${started?'<summary><b>＋ Start the next round</b></summary>':'<h3>Start a round</h3>'}
   <div class="step">1 · Course</div>
   <select data-set="draft.course" style="width:100%"><option value="" ${D.course?'':'selected'}>Other course…</option>${Object.keys(COURSES).map(k=>`<option value="${esc(k)}" ${D.course===k?'selected':''}>${esc(k)} · par ${COURSES[k].par.reduce((a,b)=>a+b,0)}</option>`).join('')}</select>
@@ -500,6 +540,7 @@ function vSetup(){
   <h3 style="margin-top:12px">Handicap after each 9</h3><div class="sm mut">Handicaps only go down. Beat your net par by X strokes and your handicap drops by X × cut rate (0.5 = half). A bad 9 never raises it.</div>
   <label class="f"><span>Cut rate</span>${num('hrule.down',S.hrule.down,0.05)}</label></div>
 
+  ${FB_CONFIG?`<div class="card"><h3>Live link</h3>${S.share?`<div class="sm mut" id="livestat">${liveStatus()}</div><div class="sm" style="word-break:break-all;margin:6px 0">${esc(shareUrl())}</div><button class="btn d" data-a="stopLive">Stop sharing</button>`:'<div class="sm mut">Not sharing. Start a link from Home or the Money tab.</div>'}</div>`:''}
   <div class="card"><h3>Data</h3><div class="row"><button class="btn" data-a="export">Export backup</button><button class="btn" data-a="import">Import</button><button class="btn d" data-a="clearRounds">Clear all rounds</button><button class="btn d" data-a="reset">Reset everything</button></div>
   <div class="sm mut" style="margin-top:6px">Clear all rounds keeps players and handicaps. Reset everything also wipes players.</div>
   <input type="file" id="impFile" accept=".json,application/json" hidden></div>`;
@@ -551,6 +592,21 @@ const ACT={
   voice:()=>openVoice(),
   close:()=>{stopRec();closeSheet()},
   undo:()=>{if(!undoSnap)return;S=JSON.parse(undoSnap);undoSnap=null;commit();toast('Undone')},
+  shareLive:()=>{
+    if(!FB_CONFIG)return toast("Live link isn't set up yet");
+    if(!S.share){S.share={id:newShareId()};save()}
+    clearTimeout(pushT);pushNow();
+    const url=shareUrl();
+    // share right away, while the tap still counts as a user gesture; the upload runs in the background
+    if(navigator.share)navigator.share({title:'Golf Bets live',text:'Follow our round live (read-only):',url}).catch(()=>{});
+    else navigator.clipboard?.writeText(url).then(()=>toast('Link copied. Paste it in the group chat.'));
+    render();
+  },
+  stopLive:()=>confirmSheet('Stop the live link?','The link you sent will stop working. You can start a new one any time.','Stop sharing','stopLiveYes'),
+  stopLiveYes:async()=>{
+    const id=S.share&&S.share.id;S.share=null;save();closeSheet();render();toast('Live link stopped');
+    if(id&&FB_CONFIG)try{const f=await fbInit();await fbUser();await f.D.remove(f.D.ref(f.db,'shares/'+id))}catch(e){}
+  },
   whoPick:d=>{const b=PENDING;if(!b)return;PENDING=null;
     b.p.acts.forEach(a=>{if(a.p==='?')a.p=d.p});
     const learn=b.p.ask&&b.p.ask.learn;
@@ -559,8 +615,11 @@ const ACT={
   vsubmit:()=>{const t=$('#vtext').value.trim();if(t)handleUtterance([t])},
   vretry:()=>startRec(),
 };
-document.addEventListener('click',e=>{const b=e.target.closest('[data-a]');if(b&&ACT[b.dataset.a])ACT[b.dataset.a](b.dataset,b)});
+// in a live view only browsing actions work; nothing can change the round
+const VIEW_OK=new Set(['tab','boardRound','scope','viewRound','close','share']);
+document.addEventListener('click',e=>{const b=e.target.closest('[data-a]');if(!b||!ACT[b.dataset.a]||(VIEW&&!VIEW_OK.has(b.dataset.a)))return;ACT[b.dataset.a](b.dataset,b)});
 document.addEventListener('change',e=>{
+  if(VIEW)return;
   const el=e.target;
   if(el.id==='impFile'){const f=el.files[0];if(!f)return;f.text().then(t=>{try{const x=JSON.parse(t);if(x.v!==1)throw 0;snap();S=x;commit();toast('Imported',true)}catch(err){toast("That file isn't a Golf Bets backup")}});return}
   const path=el.dataset.set;if(!path)return;
@@ -773,7 +832,67 @@ function startRec(){
   try{rec.start()}catch(e){showVoice('','Could not start the mic')}
 }
 
+// ---------- live link: this phone pushes the trip to Firebase; ?view=<id> pages read it ----------
+const FB_CONFIG=null; // firebaseConfig from the Firebase console goes here
+const FBV='10.12.2';
+let fb=null,pushT=null;
+const viewMeta={loaded:false,missing:false,updated:0};
+async function fbInit(){
+  if(fb)return fb;
+  const base=`https://www.gstatic.com/firebasejs/${FBV}/`;
+  const [A,Au,D]=await Promise.all([import(base+'firebase-app.js'),import(base+'firebase-auth.js'),import(base+'firebase-database.js')]);
+  const app=A.initializeApp(FB_CONFIG);
+  fb={auth:Au.getAuth(app),db:D.getDatabase(app),Au,D};
+  return fb;
+}
+// anonymous sign-in: the uid stays on this phone, and the database rules only let that uid change its own link
+async function fbUser(){
+  const f=await fbInit();
+  await new Promise(r=>{const off=f.Au.onAuthStateChanged(f.auth,()=>{off();r()})});
+  return f.auth.currentUser||(await f.Au.signInAnonymously(f.auth)).user;
+}
+const publicState=()=>{const {draft,draftOpen,tab,boardRound,moneyScope,share,...rest}=S;return rest};
+function queuePush(){if(VIEW||!S.share||!FB_CONFIG)return;clearTimeout(pushT);pushT=setTimeout(pushNow,1500)}
+async function pushNow(){
+  if(!S.share||!FB_CONFIG)return;
+  const id=S.share.id;
+  try{
+    const f=await fbInit(),u=await fbUser();
+    await f.D.set(f.D.ref(f.db,'shares/'+id),{owner:u.uid,updated:f.D.serverTimestamp(),state:JSON.stringify(publicState())});
+    if(S.share&&S.share.id===id){S.share.synced=Date.now();S.share.err=null;try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+  }catch(e){if(S.share){S.share.err=String(e&&e.message||e);clearTimeout(pushT);pushT=setTimeout(pushNow,30000)}}
+  refreshLive();
+}
+const shareUrl=()=>location.origin+location.pathname+'?view='+S.share.id;
+function newShareId(){const a=new Uint8Array(16);crypto.getRandomValues(a);return [...a].map(b=>'abcdefghijkmnpqrstuvwxyz23456789'[b%32]).join('')}
+function ago(ms){const s=Math.max(0,Math.round((Date.now()-ms)/1000));return s<60?'just now':s<3600?Math.round(s/60)+' min ago':Math.round(s/3600)+' h ago'}
+function liveStatus(){
+  if(!S.share)return'';
+  if(S.share.err)return `🟠 Live link on · waiting for signal${S.share.synced?`, last synced ${ago(S.share.synced)}`:''}`;
+  return S.share.synced?`🟢 Live link on · synced ${ago(S.share.synced)}`:'🟠 Live link on · connecting…';
+}
+function refreshLive(){const el=$('#livestat');if(el)el.textContent=liveStatus()}
+function viewBar(){const r=round();return `👀 <b>Live, read-only</b> · ${esc(r.name)}, on hole ${r.cur+1} · updated ${ago(viewMeta.updated)}`}
+async function startViewer(){
+  document.body.classList.add('viewer');
+  if(!FB_CONFIG){viewMeta.loaded=viewMeta.missing=true;render();return}
+  try{
+    const f=await fbInit();
+    f.D.onValue(f.D.ref(f.db,'shares/'+VIEW),snap=>{
+      const d=snap.val();viewMeta.loaded=true;
+      if(!d||!d.state){viewMeta.missing=true;render();return}
+      const keep={tab:S.tab,boardRound:S.boardRound,moneyScope:S.moneyScope};
+      S={...JSON.parse(d.state),...keep};viewMeta.missing=false;viewMeta.updated=d.updated||Date.now();render();
+    },()=>{viewMeta.loaded=viewMeta.missing=true;render()});
+  }catch(e){viewMeta.loaded=viewMeta.missing=true;render()}
+  setInterval(()=>{const el=$('#viewbar');if(el&&!viewMeta.missing)el.innerHTML=viewBar()},15000);
+}
+
 render();
+if(VIEW)startViewer();
+else if(S.share){pushNow();setInterval(refreshLive,30000)}
+// back in signal: catch the viewers up straight away
+addEventListener('online',()=>{if(!VIEW&&S.share)pushNow()});
 if('serviceWorker' in navigator&&location.protocol.startsWith('http')){
   // a new version took over: reload once so it shows now, not on the next open (state is already saved)
   const hadSW=!!navigator.serviceWorker.controller;
