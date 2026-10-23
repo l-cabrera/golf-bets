@@ -24,11 +24,17 @@ nav#tabs{position:fixed;bottom:0;left:0;right:0;display:flex;background:var(--ca
 nav#tabs button{flex:1;border:0;background:none;padding:9px 0 11px;font-size:12px;font-weight:600;color:var(--mut);display:flex;flex-direction:column;align-items:center;gap:1px}
 nav#tabs button span{font-size:20px}
 nav#tabs button.on{color:var(--g)}
-nav#tabs .gap{flex:0 0 84px}
+nav#tabs .gap{flex:0 0 76px}
 body.viewer #mic,body.viewer nav#tabs [data-t=home],body.viewer nav#tabs [data-t=hole],body.viewer nav#tabs .gap{display:none}
 body.viewer main{padding-bottom:90px}
 .viewbar{background:var(--bl);color:var(--blue);border-radius:12px;padding:8px 12px;font-size:13px;margin-bottom:10px}
 .live{font-size:13px;margin:8px 0 2px}
+.toc{display:flex;flex-wrap:wrap;gap:6px}
+.toc .chip{height:32px;font-size:13px;font-weight:600}
+.rules p{margin:6px 0;font-size:15px;line-height:1.45}
+.rules table{font-size:14px;margin:6px 0}
+.rules td:nth-child(2){color:var(--mut);font-size:13px;text-align:left}
+.card[id^=rule-]{scroll-margin-top:12px}
 table.sc{table-layout:fixed;font-size:13px;margin-bottom:8px}
 table.sc th,table.sc td{text-align:center;padding:4px 0}
 table.sc th:first-child,table.sc td:first-child{width:56px;text-align:left}
@@ -37,7 +43,8 @@ table.sc tr.par td{color:var(--mut)}
 table.sc th.curh{color:var(--g);text-decoration:underline}
 .sx{display:inline-block;min-width:20px;border-radius:6px;font-weight:700}
 .sx.b{background:var(--gl);color:var(--g)}.sx.bb{background:var(--g);color:var(--card)}.sx.o1{background:var(--yl);color:var(--gold)}.sx.o2{background:var(--rl);color:var(--red)}
-#mic{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(14px + env(safe-area-inset-bottom));border:4px solid var(--bg)!important;width:66px;height:66px;border-radius:50%;border:0;background:var(--acc);color:#fff;box-shadow:0 6px 18px rgba(0,0,0,.28);z-index:7;display:grid;place-items:center}
+/* mic sits over the nav gap: two tabs left of it, three right, gap 76px */
+#mic{position:fixed;left:calc((100vw - 76px) * 2 / 5 + 38px);transform:translateX(-50%);bottom:calc(14px + env(safe-area-inset-bottom));border:4px solid var(--bg)!important;width:66px;height:66px;border-radius:50%;border:0;background:var(--acc);color:#fff;box-shadow:0 6px 18px rgba(0,0,0,.28);z-index:7;display:grid;place-items:center}
 #mic svg{width:30px;height:30px}
 #mic.live{background:#dc2626;animation:pulse 1s infinite}
 @keyframes pulse{50%{box-shadow:0 0 0 12px rgba(220,38,38,.2)}}
@@ -138,6 +145,7 @@ input[type=number]{width:80px}
   <div class="gap"></div>
   <button data-a="tab" data-t="board"><span>📋</span>Board</button>
   <button data-a="tab" data-t="money"><span>💵</span>Money</button>
+  <button data-a="tab" data-t="rules"><span>📖</span>Rules</button>
 </nav>
 <div id="veil" hidden data-a="close"></div>
 <div id="sheet" hidden></div>
@@ -360,9 +368,9 @@ function render(){
   if(VIEW&&(!viewMeta.loaded||viewMeta.missing)){
     $('#view').innerHTML=`<div class="card" style="margin-top:40px;text-align:center">${viewMeta.missing?'This live link isn\'t active anymore, or the address got cut off. Ask for the link again.':'Loading the live round…'}</div>`;return;
   }
-  if(VIEW&&!['board','money'].includes(S.tab))S.tab='board';
+  if(VIEW&&!['board','money','rules'].includes(S.tab))S.tab='board';
   const C=compute();
-  $('#view').innerHTML=(VIEW?`<div id="viewbar" class="viewbar">${viewBar()}</div>`:'')+({home:vHome,hole:vHole,board:vBoard,money:vMoney,setup:vSetup}[S.tab]||vHome)(C);
+  $('#view').innerHTML=(VIEW?`<div id="viewbar" class="viewbar">${viewBar()}</div>`:'')+({home:vHome,hole:vHole,board:vBoard,money:vMoney,rules:vRules,setup:vSetup}[S.tab]||vHome)(C);
   announceJar(C);
 }
 // shout when a jar payout appears that wasn't there before (first render just records what exists)
@@ -451,6 +459,35 @@ function vBoard(C){
   o+=`<div class="card"><h3>Balls, penalties & first GIR</h3><table><tr><th>Player</th><th>Lost / OB</th><th>Penalties</th></tr>${S.players.map(p=>`<tr><td>${esc(p.name)}</td><td>${X.lost[p.id]}</td><td>${X.pen[p.id]}</td></tr>`).join('')}</table>
   <div class="sm mut" style="margin-top:6px">${gp?`🎯 First green in regulation: <b>${esc(pname(gp))}</b> on hole ${X.firstHole.gir+1}, collects ${money(+(r.stakes.gir??1))} from each player.`:`🎯 First green in regulation: nobody yet. Worth ${money(+(r.stakes.gir??1))} from each player.`} Lost balls and penalties are tracked only, no money. Include penalty strokes in the hole score.</div></div>`;
   return o;
+}
+// the bet sheet: every game, fine and rule, with this round's actual amounts and on/off state
+function vRules(){
+  const r=viewRound(),st=r.stakes,g=r.games,f=+st.fine||0,n=S.players.length-1;
+  const on=(b,amt)=>b?`<span class="pill" style="background:var(--gl);color:var(--g)">On${amt!=null?' · '+amt:''}</span>`:'<span class="pill" style="background:var(--bg);color:var(--mut)">Off this round</span>';
+  const oh=g.oneClubHole!=null&&g.oneClubHole!=='';
+  const sec=(id,icon,title,badge,body)=>`<div class="card" id="rule-${id}"><div class="row" style="justify-content:space-between;margin-bottom:6px"><h3 style="margin:0">${icon} ${title}</h3>${badge||''}</div><div class="rules">${body}</div></div>`;
+  const fineRows=FINE_ORDER.filter(k=>fineKind(k)==='fine').map(k=>{const x=FINES[k];
+    return `<tr><td>${x.icon} ${esc(x.label.replace(/^First /,''))}</td><td>${x.first?'first one each round':'every time'}</td><td>${money(f)}</td></tr>`}).join('');
+  const toc=[['scoring','Scoring & handicaps'],['jar','Swear jar'],['net9','Net 9 match'],['bbb','Bingo Bango Bongo'],['ball','Longest ball'],['gir','First GIR'],['oneclub','One-club challenge'],['string','Unbroken String'],['tracking','Lost balls & penalties'],['settle','Settling up']];
+  return `<h2>Bet sheet</h2>${S.rounds.length>1?roundChips(r.id,'boardRound'):''}
+  <div class="sm mut" style="margin-bottom:8px">Amounts and on/off are for <b>${esc(r.name)}</b>. Tap a bet to jump to it.</div>
+  <div class="card"><div class="toc">${toc.map(([id,t],i)=>`<button class="chip" data-a="jump" data-id="rule-${id}">${i+1}. ${t}</button>`).join('')}</div></div>
+  ${sec('scoring','⛳','Scoring & handicaps','',`
+    <p>Everyone's real score goes on the card. Your <b>handicap is strokes per 9 holes</b> (about half your 18-hole handicap), given on the hardest holes of each nine by the card's stroke index (the dots next to your name on the Hole screen). Score minus strokes = your <b>net</b> score.</p>
+    <p>After every 9 holes your handicap is recalculated, and it <b>only goes down</b>. Beat your net par by X strokes and it drops by X × ${S.hrule.down} (rounded to 0.1). A bad nine never raises it.</p>`)}
+  ${sec('jar','🫙','Swear jar','<span class="pill">'+money(f)+' per fine</span>',`
+    <p>Fines go into a shared jar. It carries over between rounds until someone wins it.</p>
+    <table><tr><th>Fine</th><th>When</th><th>$</th></tr>${fineRows}<tr><td>⛳ 3-putt</td><td>every time (automatic from putts)</td><td>${money(f)}</td></tr></table>
+    <p class="sm mut">"First one each round" fines only cost the first player who does it each round. Later ones are logged but cost $0. The clichés are: "You'll find it", "That'll work", "Happy with that", "I didn't see it bounce". A short tee shot is a drive that doesn't pass the forward tees.</p>
+    <p><b>Who wins the jar this round:</b> ${esc(JAR_RULES[r.jarRule||'outright'][0])}. ${esc(JAR_RULES[r.jarRule||'outright'][1])}</p>`)}
+  ${sec('net9','🤝','Net 9 match',on(g.net9,money(+st.net9)),`<p>${HELP.net9(+st.net9)}</p><p class="sm mut">An 18-hole round has two separate matches: front 9 and back 9.</p>`)}
+  ${sec('bbb','🎯','Bingo Bango Bongo',on(g.bbb,money(+st.bbbPt)+' / point'),`<p>${HELP.bbb(+st.bbbPt)}</p>`)}
+  ${sec('ball','⚪','Longest ball (last man standing)',on(g.ball,money(+(st.ball??1))),`<p>${HELP.ball(+(st.ball??1))}</p><p class="sm mut">With ${n+1} players, the winner collects ${money(+(st.ball??1)*n)}.</p>`)}
+  ${sec('gir','🟢','First green in regulation',on(true,money(+(st.gir??1))),`<p>The first player each round to reach a green in regulation (on in 1 on a par 3, in 2 on a par 4, in 3 on a par 5) collects ${money(+(st.gir??1))} from each other player, ${money(+(st.gir??1)*n)} total.</p>`)}
+  ${sec('oneclub','🏌️','One-club challenge',on(oh,oh?'hole '+(+g.oneClubHole+1)+' · '+money(+st.oneClub):null),`<p>On the chosen hole, everyone plays tee to green <b>and putts</b> with only a 7-iron. Lowest score wins ${money(+st.oneClub)} from each other player. Tied winners split it, and if everyone ties nobody pays.</p>`)}
+  ${sec('string','🧵','Unbroken String (whole trip)',on(+S.trip.stringStake>0,money(+S.trip.stringStake)),`<p>Across every round of the trip: the longest run of holes in a row without a double bogey or worse${S.trip.stringNet?', counted <b>after your handicap strokes</b> (a net double breaks it)':', counted on actual strokes'}. At the end of the trip, the leader collects ${money(+S.trip.stringStake)} from each other player. Tied leaders split it.</p>`)}
+  ${sec('tracking','🔍','Lost balls & penalties','',`<p>Lost balls / OB and penalty strokes are counted on the Board. They don't cost money by themselves, but a lost ball ends your run in <b>Longest ball</b>. Include penalty strokes in your hole score.</p>`)}
+  ${sec('settle','💵','Settling up','',`<p>Every game is netted into one short list of who pays whom (Money tab), per round or for the whole trip. Fines are paid to the jar, and the jar pays out to its winner. Money still in the jar at the end stays in the pot.</p>`)}`;
 }
 function vMoney(C){
   const scope=S.moneyScope||'round',r=viewRound();
@@ -586,6 +623,7 @@ const ACT={
   delEv:d=>{snap();S.events=S.events.filter(e=>e.id!==d.id);commit();toast('Removed',true)},
   loadCourse:()=>{const k=$('#ldCourse').value,r=round(),c=COURSES[k];if(!c)return;r.name=k;r.holes=c.par.map((p,i)=>({par:p,si:c.si[i]}));commit();toast('Loaded '+k)},
   boardRound:d=>{S.boardRound=d.id;commit()},
+  jump:d=>document.getElementById(d.id)?.scrollIntoView({behavior:'smooth',block:'start'}),
   viewRound:d=>{S.boardRound=d.id;S.moneyScope='round';S.tab=d.t;commit();scrollTo(0,0)},
   clearRounds:()=>confirmSheet('Clear all rounds?','Erases every round, score, fine and the jar. Players, nicknames and starting handicaps stay.','Clear rounds','clearRoundsYes'),
   clearRoundsYes:()=>{snap();const r=mkRound('East Potomac – White',9);S.rounds=[r];S.cur=r.id;S.events=[];S.boardRound=null;S.draft=null;S.tab='home';closeSheet();commit();toast('All rounds cleared',true)},
@@ -642,7 +680,7 @@ const ACT={
   vretry:()=>startRec(),
 };
 // in a live view only browsing actions work; nothing can change the round
-const VIEW_OK=new Set(['tab','boardRound','scope','viewRound','close','share']);
+const VIEW_OK=new Set(['tab','boardRound','scope','viewRound','close','share','jump']);
 document.addEventListener('click',e=>{const b=e.target.closest('[data-a]');if(!b||!ACT[b.dataset.a]||(VIEW&&!VIEW_OK.has(b.dataset.a)))return;ACT[b.dataset.a](b.dataset,b)});
 document.addEventListener('change',e=>{
   if(VIEW)return;
