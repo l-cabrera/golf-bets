@@ -197,13 +197,15 @@ function mkRound(name,n,prev){
 function mkState(){
   const players=['Lautaro','Ryan','Player 3','Player 4'].map((n,i)=>({id:'p'+(i+1),name:n,aliases:'',hcp:9}));
   const r=mkRound('East Potomac – White',9);
-  return {v:1,players,meId:'p1',hrule:{down:0.5,up:0.25,upCap:1},trip:{stringStake:5,stringNet:false},rounds:[r],cur:r.id,events:[],tab:'home'};
+  return {v:1,players,meId:'p1',hrule:{down:0.5,up:0.25,upCap:1},trip:{stringStake:5,stringNet:true},stringNetSet:1,rounds:[r],cur:r.id,events:[],tab:'home'};
 }
 let S=null;
 try{S=JSON.parse(localStorage.getItem(KEY))}catch(e){}
 if(!S||S.v!==1) S=mkState();
 // phones that opened v1 have the placeholder card on an untouched first round: swap in White
 {const r0=S.rounds[0];if(r0&&r0.name==='East Potomac'&&!Object.keys(r0.scores).length&&r0.holes.every((h,i)=>h.par===DEF_PARS[i]&&h.si===DEF_SI[i])){r0.name='East Potomac – White';const c=COURSES[r0.name];r0.holes=c.par.map((p,i)=>({par:p,si:c.si[i]}))}}
+// one-time: the Unbroken String now counts handicap strokes by default (the Settings toggle still wins afterwards)
+if(!S.stringNetSet){S.trip.stringNet=true;S.stringNetSet=1}
 function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
 const round=()=>S.rounds.find(r=>r.id===S.cur)||S.rounds[0];
 // round shown on Board/Money (can be a past one); the round being played stays S.cur
