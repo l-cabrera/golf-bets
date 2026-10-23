@@ -1,5 +1,5 @@
 // Serve from cache instantly (spotty course signal), refresh the cache in the background.
-const CACHE = 'golfbets-v12';
+const CACHE = 'golfbets-v13';
 const ASSETS = ['./index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png'];
 // Firebase SDK for the live link; kept so the app can sync as soon as signal returns, even if it started offline
 const FB_SDK = ['app', 'auth', 'database'].map(m => `https://www.gstatic.com/firebasejs/10.12.2/firebase-${m}.js`);
