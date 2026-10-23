@@ -162,11 +162,12 @@ const FINES={
   triplechip:{label:'First triple chip',icon:'🥄',first:true,kw:['triple chip','triple chipped','3 chip','3 chipped']},
   cliche:{label:'Golf cliché',icon:'💬',kw:["you'll find it",'youll find it','you will find it',"that'll work",'thatll work','that will work','happy with that','see it bounce','saw it bounce','cliche','cliché']},
   short:{label:"Short tee shot (didn't pass forward tees)",icon:'🎀',kw:['ladies','ladies tee','forward tee','forward tees','short drive','short tee','short tee shot','red tees','skirt']},
-  tree:{label:'First tree strike',icon:'🌳',first:true,kw:['tree','trees','wood','branch','branches','timber']},
-  bunker:{label:'First bunker',icon:'🏖️',first:true,kw:['bunker','sand','trap','beach']},
+  // keywords must not be ordinary golf talk: no bare "wood" (3 wood), "sand" (sand wedge), "water" (carried the water), "told"
+  tree:{label:'First tree strike',icon:'🌳',first:true,kw:['tree','trees','branch','branches','timber']},
+  bunker:{label:'First bunker',icon:'🏖️',first:true,kw:['bunker','in the sand','into the sand','found the sand','sand trap','trap','beach']},
   cart:{label:'First cart-path bounce',icon:'🛣️',first:true,kw:['cart path','cart-path','cartpath','path','asphalt','pavement']},
-  water:{label:'First ball in water',icon:'💧',first:true,kw:['water','lake','pond','creek','river','splash','drink','wet']},
-  tip:{label:'Unsolicited swing tip',icon:'🗣️',kw:['swing tip','tip','tips','tipped','lesson','swing advice','advice','swing thought','keep your head down','keep his head down','keep her head down','head down','coached','coaching','told']},
+  water:{label:'First ball in water',icon:'💧',first:true,kw:['in the water','into the water','found the water','hit the water','went in the water','in the lake','in the pond','in the creek','in the river','splash','splashed','wet','water ball']},
+  tip:{label:'Unsolicited swing tip',icon:'🗣️',kw:['swing tip','tip','tips','tipped','lesson','swing advice','swing thought','keep your head down','keep his head down','keep her head down','head down','coached','coaching']},
   other:{label:'Other fine',icon:'💲',kw:['fine','fined','swear','swore','cursed','cussed']},
 };
 const FINE_ORDER=Object.keys(FINES);
@@ -209,7 +210,7 @@ function mkRound(name,n,prev){
 function mkState(){
   const players=['Lautaro','Ryan','Player 3','Player 4'].map((n,i)=>({id:'p'+(i+1),name:n,aliases:'',hcp:9}));
   const r=mkRound('East Potomac – White',9);
-  return {v:1,players,meId:'p1',hrule:{down:0.5,up:0.25,upCap:1},trip:{stringStake:5,stringNet:true},stringNetSet:1,rounds:[r],cur:r.id,events:[],tab:'home'};
+  return {v:1,players,meId:'p1',hrule:{down:0.5},trip:{stringStake:5,stringNet:true},stringNetSet:1,rounds:[r],cur:r.id,events:[],tab:'home'};
 }
 // ?view=<id> opens a read-only live copy of someone's trip; it never reads or writes this phone's own data
 const VIEW=new URLSearchParams(location.search).get('view');
@@ -449,7 +450,8 @@ function vMoney(C){
   <button class="big" data-a="share">Share summary</button>${VIEW?'':`<div class="card" style="margin-top:10px">${liveBlock()}</div>`}`;
   return o;
 }
-const hasData=r=>Object.values(r.scores).some(a=>a.some(v=>v!=null))||S.events.some(e=>e.r===r.id)||r.bbb.some(Boolean);
+// a BBB chip tapped off leaves {bingo:null}, so look for an actual pick, not just an entry
+const hasData=r=>Object.values(r.scores).some(a=>a.some(v=>v!=null))||S.events.some(e=>e.r===r.id)||r.bbb.some(b=>b&&BBB.some(k=>b[k]));
 function mkDraft(){
   const r=round();
   return {course:COURSES[r.name]?r.name:'East Potomac – White',custom:'',holes:9,
@@ -568,7 +570,6 @@ const ACT={
   clearRoundsYes:()=>{snap();const r=mkRound('East Potomac – White',9);S.rounds=[r];S.cur=r.id;S.events=[];S.boardRound=null;S.draft=null;S.tab='home';closeSheet();commit();toast('All rounds cleared',true)},
   scope:d=>{S.moneyScope=d.v;commit()},
   pickRound:d=>{S.cur=d.id;S.boardRound=d.id;commit()},
-  newRound:()=>{const ck=$('#nrCourse').value;const name=ck||$('#nrName').value.trim()||'Round '+(S.rounds.length+1);const r=mkRound(name,ck?COURSES[ck].par.length:+$('#nrHoles').value,round());S.rounds.push(r);S.cur=r.id;S.boardRound=r.id;commit();toast('Started '+name)},
   teeOff:()=>{
     const D=S.draft||mkDraft(),preset=COURSES[D.course];
     const name=D.course||D.custom.trim()||'Round '+(S.rounds.length+1),n=preset?preset.par.length:+D.holes||9;
@@ -587,11 +588,12 @@ const ACT={
   export:()=>{const b=new Blob([JSON.stringify(S,null,1)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='golf-bets-'+new Date().toISOString().slice(0,10)+'.json';a.click()},
   import:()=>$('#impFile').click(),
   reset:()=>confirmSheet('Reset everything?','Erases all rounds, scores, fines and players. Export a backup first if you might want it.','Erase all','resetYes'),
-  resetYes:()=>{snap();S=mkState();closeSheet();commit();toast('Reset',true)},
+  resetYes:()=>{snap();const sh=S.share;S=mkState();S.share=sh;closeSheet();commit();toast('Reset',true)},
   share:()=>share(),
   voice:()=>openVoice(),
   close:()=>{stopRec();closeSheet()},
-  undo:()=>{if(!undoSnap)return;S=JSON.parse(undoSnap);undoSnap=null;commit();toast('Undone')},
+  // the live link belongs to this phone, not to a snapshot: undo restores the round, never the sharing state
+  undo:()=>{if(!undoSnap)return;const sh=S.share;S=JSON.parse(undoSnap);S.share=sh;undoSnap=null;commit();toast('Undone')},
   shareLive:()=>{
     if(!FB_CONFIG)return toast("Live link isn't set up yet");
     if(!S.share){S.share={id:newShareId()};save()}
@@ -612,7 +614,7 @@ const ACT={
   },
   whoPick:d=>{const b=PENDING;if(!b)return;PENDING=null;
     b.p.acts.forEach(a=>{if(a.p==='?')a.p=d.p});
-    const learn=b.p.ask&&b.p.ask.learn;
+    const learn=b.p.ask&&b.p.ask.learn&&$('#whoLearn')?.checked?b.p.ask.learn:null;
     if(learn){const pl=S.players.find(p=>p.id===d.p);pl.aliases=[pl.aliases,learn].filter(Boolean).join(', ')}
     finishVoice(b)},
   vsubmit:()=>{const t=$('#vtext').value.trim();if(t)handleUtterance([t])},
@@ -624,7 +626,7 @@ document.addEventListener('click',e=>{const b=e.target.closest('[data-a]');if(!b
 document.addEventListener('change',e=>{
   if(VIEW)return;
   const el=e.target;
-  if(el.id==='impFile'){const f=el.files[0];if(!f)return;f.text().then(t=>{try{const x=JSON.parse(t);if(x.v!==1)throw 0;snap();S=x;commit();toast('Imported',true)}catch(err){toast("That file isn't a Golf Bets backup")}});return}
+  if(el.id==='impFile'){const f=el.files[0];if(!f)return;f.text().then(t=>{try{const x=JSON.parse(t);if(x.v!==1)throw 0;snap();x.share=S.share;S=x;commit();toast('Imported',true)}catch(err){toast("That file isn't a Golf Bets backup")}});return}
   const path=el.dataset.set;if(!path)return;
   let v=el.type==='checkbox'?el.checked:el.value;
   if(el.dataset.ty==='num')v=v===''?0:+v;
@@ -675,7 +677,7 @@ const BBB_PHRASES=[
   [/\b(holed? (it )?out first|first to hole out|first in the hole|in the hole first|in first)\b/g,'bongo'],
 ];
 // capitalised words that are never a misheard player name
-const NOT_NAMES=new Set('the and he she they we you no yes wait okay ok oh hole next everyone everybody bingo bango bongo that this what nice great good shot just also then so his her its it lost said told gave hit'.split(' '));
+const NOT_NAMES=new Set('the and he she they we you no yes yeah yep nope wait okay ok oh hey wow whoa nice great good awesome sweet damn dang shoot man dude bro well alright all hole next everyone everybody bingo bango bongo that this what shot just also then so his her its it lost said told gave hit'.split(' '));
 const reEsc=s=>s.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
 const wre=k=>new RegExp('(^|[^a-z0-9])'+reEsc(k)+'(?=$|[^a-z0-9])');
 const isFiller=s=>/^[\s,&]*((and|plus|with|also|too|&)[\s,]*)*$/.test(s);
@@ -721,8 +723,9 @@ function parseUtterance(text){
   const r=round(),n=r.holes.length;let t=norm(text);let h=r.cur;const acts=[],warn=[];
   if(/\b(next hole|go to next)\b/.test(t)&&!/\bhole \d/.test(t))return{acts:[{k:'nav',h:Math.min(n-1,r.cur+1)}],warn};
   if(/\b(previous hole|last hole|go back)\b/.test(t))return{acts:[{k:'nav',h:Math.max(0,r.cur-1)}],warn};
-  let m=t.match(/\bhole (?:number )?(\d{1,2})\b/)||t.match(/\b(\d{1,2})(?:st|nd|rd|th) hole\b/);
-  if(!m){const o=t.match(/\b(first|second|third|fourth|fifth|sixth|seventh|eighth|ninth|tenth|eleventh|twelfth|thirteenth|fourteenth|fifteenth|sixteenth|seventeenth|eighteenth) hole\b/);if(o)m=[o[0],ORDW[o[1]]]}
+  // "hole 7", "7th hole", "seventh hole", and the way people actually say it: "on 7", "on the 7th", "on number 7"
+  let m=t.match(/\bhole (?:number )?(\d{1,2})\b/)||t.match(/\b(\d{1,2})(?:st|nd|rd|th) hole\b/)||t.match(/\bon (?:the |number )?(\d{1,2})(?:st|nd|rd|th)?\b(?! ?(?:putts?|shot|swing|try|attempt)\b)/);
+  if(!m){const o=t.match(/\b(?:on the )?(first|second|third|fourth|fifth|sixth|seventh|eighth|ninth|tenth|eleventh|twelfth|thirteenth|fourteenth|fifteenth|sixteenth|seventeenth|eighteenth) hole\b/)||t.match(/\bon the (second|third|fourth|fifth|sixth|seventh|eighth|ninth|tenth|eleventh|twelfth|thirteenth|fourteenth|fifteenth|sixteenth|seventeenth|eighteenth)\b(?! (?:putts?|shot|swing|try|attempt)\b)/);if(o)m=[o[0],ORDW[o[1]]]}
   if(m&&+m[1]>=1&&+m[1]<=n){h=+m[1]-1;t=t.replace(m[0],' ')}
   for(const [re,k] of BBB_PHRASES)t=t.replace(re,' '+k+' ');
   t=t.replace(/\b(\d+(?:st|nd|rd|th)?|second|third|fourth|fifth|sixth) (shot|swing|attempt|try)\b/g,' ').replace(/\bthe par \d\b/g,' ').replace(/\bon (the )?(tee|green)\b/g,' ');
@@ -767,8 +770,10 @@ function parseUtterance(text){
     per.forEach(x=>x.a={...x.a,fines:[]});
     ask={cands:dist,learn:null};
   }
+  // "everyone" means everyone not named on their own in the same sentence ("Ryan par, everyone else bogey")
+  const named=new Set(per.map(x=>x.mm.p).filter(p=>p!=='*'));
   for(const x of per){
-    const ps=x.mm.p==='*'?S.players.map(p=>p.id):[x.mm.p];
+    const ps=x.mm.p==='*'?S.players.map(p=>p.id).filter(p=>!named.has(p)):[x.mm.p];
     for(const p of ps){
       if(x.a.score!=null)acts.push({k:'score',p,h,v:x.a.score});
       if(x.a.putts!=null)acts.push({k:'putts',p,h,v:x.a.putts});
@@ -811,7 +816,8 @@ function askWho(b){
   const order=[...cands,...S.players.map(p=>p.id).filter(id=>!cands.includes(id))];
   const what=[...new Set(b.p.acts.filter(a=>a.p==='?').map(describe))].join(', ');
   openSheet(`<h2>Who?</h2><div class="heard">“${esc(b.text)}”</div><div class="mut" style="margin-bottom:6px">Who gets <b>${esc(what)}</b>?</div>
-    ${order.map(id=>`<button class="opt" data-a="whoPick" data-p="${id}"><b>${esc(pname(id))}</b>${learn?`<small>and remember “${esc(learn)}”</small>`:''}</button>`).join('')}
+    ${learn?`<label class="f" style="margin:4px 0 8px"><input type="checkbox" id="whoLearn" checked><span>Remember “${esc(learn)}” as this player's nickname</span></label>`:''}
+    ${order.map(id=>`<button class="opt" data-a="whoPick" data-p="${id}"><b>${esc(pname(id))}</b></button>`).join('')}
     <button class="opt" data-a="close"><span class="mut">Cancel, log nothing</span></button>`);
 }
 const SR=window.SpeechRecognition||window.webkitSpeechRecognition;let rec=null;
@@ -849,6 +855,9 @@ let fb=null,pushT=null;
 const viewMeta={loaded:false,missing:false,updated:0};
 async function fbInit(){
   if(fb)return fb;
+  // Chrome may remember a failed module import for the page's lifetime, so never attempt one while offline;
+  // the service worker also keeps a copy of these files so later loads don't need the network at all
+  if(navigator.onLine===false)throw new Error('offline');
   const base=`https://www.gstatic.com/firebasejs/${FBV}/`;
   const [A,Au,D]=await Promise.all([import(base+'firebase-app.js'),import(base+'firebase-auth.js'),import(base+'firebase-database.js')]);
   const app=A.initializeApp(FB_CONFIG);
@@ -900,7 +909,7 @@ async function startViewer(){
 
 render();
 if(VIEW)startViewer();
-else if(S.share){pushNow();setInterval(refreshLive,30000)}
+else{if(S.share)pushNow();setInterval(refreshLive,30000)}
 // back in signal: catch the viewers up straight away
 addEventListener('online',()=>{if(!VIEW&&S.share)pushNow()});
 if('serviceWorker' in navigator&&location.protocol.startsWith('http')){
