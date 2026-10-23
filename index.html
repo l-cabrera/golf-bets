@@ -598,9 +598,12 @@ const ACT={
     clearTimeout(pushT);pushNow();
     const url=shareUrl();
     // share right away, while the tap still counts as a user gesture; the upload runs in the background
-    if(navigator.share)navigator.share({title:'Golf Bets live',text:'Follow our round live (read-only):',url}).catch(()=>{});
-    else navigator.clipboard?.writeText(url).then(()=>toast('Link copied. Paste it in the group chat.'));
+    // if neither the share menu nor the clipboard works, show the link so it can be copied by hand
+    const showLink=()=>openSheet(`<h2>Live link</h2><p class="mut">Copy this and text it to the group:</p><input type="text" readonly value="${esc(url)}" style="width:100%" onfocus="this.select()"><button class="big" data-a="close" style="margin-top:10px">Done</button>`);
     render();
+    if(navigator.share)navigator.share({title:'Golf Bets live',text:'Follow our round live (read-only):',url}).catch(e=>{if(e&&e.name!=='AbortError')showLink()});
+    else if(navigator.clipboard)navigator.clipboard.writeText(url).then(()=>toast('Link copied. Paste it in the group chat.'),showLink);
+    else showLink();
   },
   stopLive:()=>confirmSheet('Stop the live link?','The link you sent will stop working. You can start a new one any time.','Stop sharing','stopLiveYes'),
   stopLiveYes:async()=>{
@@ -833,7 +836,14 @@ function startRec(){
 }
 
 // ---------- live link: this phone pushes the trip to Firebase; ?view=<id> pages read it ----------
-const FB_CONFIG=null; // firebaseConfig from the Firebase console goes here
+// public web config (not a secret); the database rules are what protect writes
+const FB_CONFIG={
+  apiKey:'AIzaSyBS_KqciVBCifLJ-R5VMX9uLs3Kw6Ck-ms',
+  authDomain:'golf-bets-6272f.firebaseapp.com',
+  databaseURL:'https://golf-bets-6272f-default-rtdb.firebaseio.com',
+  projectId:'golf-bets-6272f',
+  appId:'1:89139853479:web:c5035f15b1894c3aa44382',
+};
 const FBV='10.12.2';
 let fb=null,pushT=null;
 const viewMeta={loaded:false,missing:false,updated:0};

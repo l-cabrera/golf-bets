@@ -1,5 +1,5 @@
 // Serve from cache instantly (spotty course signal), refresh the cache in the background.
-const CACHE = 'golfbets-v8';
+const CACHE = 'golfbets-v9';
 const ASSETS = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png'];
 
 self.addEventListener('install', e => {
