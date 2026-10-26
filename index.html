@@ -24,7 +24,8 @@ nav#tabs button span{font-size:20px}
 nav#tabs button.on{color:var(--g)}
 nav#tabs .gap{flex:0 0 84px}
 /* Rules lives on Home for the scorekeeper; live viewers have no Home, so they keep it in the bar */
-body:not(.viewer) nav#tabs [data-t=rules]{display:none}
+body:not(.viewer):not(.scorer) nav#tabs [data-t=rules]{display:none}
+body.scorer nav#tabs [data-t=home]{display:none}
 body.viewer #mic,body.viewer nav#tabs [data-t=home],body.viewer nav#tabs [data-t=hole],body.viewer nav#tabs .gap{display:none}
 body.viewer main{padding-bottom:90px}
 .viewbar{background:var(--bl);color:var(--blue);border-radius:12px;padding:8px 12px;font-size:13px;margin-bottom:10px}
@@ -201,6 +202,14 @@ input[type=number]{width:80px}
 .bet input[type=number]{width:62px}
 .bet input[type=checkbox]{width:20px;height:20px;accent-color:var(--acc)}
 .bet .ocsel{display:block;margin-top:6px;width:100%}
+.aw{display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px solid var(--line)}
+.aw:last-child{border-bottom:0}
+.aw small{display:block;color:var(--mut);font-size:12px;font-weight:400}
+.aww{text-align:right;font-weight:600}
+.rf{margin:10px 0}
+.rf>span{display:block;font-size:13px;color:var(--mut);margin-bottom:4px}
+.rf small{display:block;font-size:12px}
+.rf input,.rf select{width:100%}
 :root #sheet{border-radius:8px 8px 0 0}
 :root .viewbar{background:transparent;color:var(--mut);padding:4px 0 8px;border-bottom:1px solid var(--line);border-radius:0;margin-bottom:0}
 </style>
@@ -244,10 +253,13 @@ const FINES={
   bunker:{label:'Bunker',legacyFirst:true,kw:['bunker','in the sand','into the sand','found the sand','sand trap','trap','beach']},
   cart:{label:'Cart-path bounce',legacyFirst:true,kw:['cart path','cart-path','cartpath','path','asphalt','pavement']},
   water:{label:'Ball in water',legacyFirst:true,kw:['in the water','into the water','found the water','hit the water','went in the water','in the lake','in the pond','in the creek','in the river','splash','splashed','wet','water ball']},
+  wrongfw:{label:'Wrong fairway',hint:"tee shot ends up on another hole's fairway",kw:['wrong fairway','other fairway','another fairway','different fairway','next fairway','neighboring fairway','neighbouring fairway','adjacent fairway','wrong hole']},
   tip:{label:'Unsolicited swing tip',kw:['swing tip','tip','tips','tipped','lesson','swing advice','swing thought','keep your head down','keep his head down','keep her head down','head down','coached','coaching']},
   other:{label:'Other fine',hint:'type what it was for',kw:['fine','fined','swear','swore','cursed','cussed']},
 };
-const FINE_ORDER=Object.keys(FINES);
+const BUILTIN=Object.keys(FINES);
+// both lists are rebuilt by syncRules() whenever the house rules change
+const FINE_ORDER=[...BUILTIN],FINE_KEYS=[...BUILTIN.filter(k=>!FINES[k].kind),'threeputt'];
 const BBB=['bingo','bango','bongo'];
 // Plain-English rule text, shown on Board and Setup
 const JAR_RULES={
@@ -260,14 +272,27 @@ const fineKind=t=>(FINES[t]&&FINES[t].kind)||'fine';
 // unknown rule names (old or edited backups) behave as 'outright', same as compute() does
 const jarRule=r=>JAR_RULES[r.jarRule]||JAR_RULES.outright;
 // Per-hole fines: each can be switched on/off and priced per round. 'threeputt' is charged automatically from putts.
-const FINE_KEYS=[...FINE_ORDER.filter(k=>fineKind(k)==='fine'),'threeputt'];
+// House rules made in Settings (S.customRules) join FINES, so + Log, the mic, setup and the bet sheet all treat them like built-in ones.
+// A deleted rule that was already logged stays in FINES as hidden, so its old fines keep their name and price.
+const ruleWords=c=>[c.label,...String(c.words||'').split(',')].map(w=>norm(w).trim()).filter(w=>w.length>1);
+function syncRules(){
+  for(const k in FINES)if(FINES[k].custom)delete FINES[k];
+  const cr=(S&&S.customRules)||[];
+  for(const c of cr)FINES[c.id]={custom:true,hidden:!!c.hidden,kind:c.kind==='bounty'?'bounty':'fine',label:c.label||'House rule',hint:c.hint||'',first:!!c.first,amt:+c.amt||0,kw:ruleWords(c)};
+  FINE_ORDER.splice(0,FINE_ORDER.length,...BUILTIN.filter(k=>k!=='other'),...cr.filter(c=>!c.hidden).map(c=>c.id),'other');
+  FINE_KEYS.splice(0,FINE_KEYS.length,...FINE_ORDER.filter(k=>fineKind(k)==='fine'||FINES[k].custom),'threeputt');
+}
 const fineName=k=>k==='threeputt'?'3-putt':FINES[k].label;
-const fineHint=k=>k==='threeputt'?'automatic from putts':FINES[k].hint||'';
-const mkFines=base=>Object.fromEntries(FINE_KEYS.map(k=>[k,{on:true,amt:base}]));
-function fineCfg(r,k){const c=r.fines&&r.fines[k];return{on:c?c.on!==false:true,amt:c&&c.amt!=null&&c.amt!==''?+c.amt:+r.stakes.fine||0}}
+const fineHint=k=>{if(k==='threeputt')return'automatic from putts';const f=FINES[k];
+  return f.hint||(f.custom?(f.kind==='bounty'?'each other player pays them':'')+(f.first?(f.kind==='bounty'?', ':'')+'first one each round':''):'')};
+const fineDef=(k,base)=>FINES[k]&&FINES[k].custom?FINES[k].amt:base;
+const mkFines=base=>Object.fromEntries(FINE_KEYS.map(k=>[k,{on:true,amt:fineDef(k,base)}]));
+function fineCfg(r,k){const c=r.fines&&r.fines[k];return{on:c?c.on!==false:true,amt:c&&c.amt!=null&&c.amt!==''?+c.amt:fineDef(k,+r.stakes.fine||0)}}
+// what a bounty pays from each other player
+const bountyAmt=(r,k)=>k==='gir'?(r.games.gir===false?0:+(r.stakes.gir??1)||0):fineCfg(r,k).on?fineCfg(r,k).amt:0;
 // rounds created before per-fine settings charged tree/bunker/cart/water/triple chip to the first player only
 const firstOnly=(r,k)=>!!FINES[k]&&!!(FINES[k].first||(FINES[k].legacyFirst&&r.fineMode!=='every'));
-const isOn=(r,k)=>{const kd=fineKind(k);return kd==='track'?true:kd==='bounty'?r.games.gir!==false:fineCfg(r,k).on};
+const isOn=(r,k)=>{const kd=fineKind(k);return kd==='track'?true:k==='gir'?r.games.gir!==false:fineCfg(r,k).on};
 const ocHole=r=>{const h=r.games.oneClubHole;return (r.games.oneClubOn??true)&&h!=null&&h!==''&&r.holes[+h]?+h:null};
 const evLabel=e=>e.type==='other'&&e.desc?e.desc:(FINES[e.type]?.label||e.type).replace(/^First /,'').replace(/^./,c=>c.toUpperCase());
 // fill in settings that older rounds/drafts don't have, so the setup editor can bind to them
@@ -312,17 +337,20 @@ function mkState(){
   const r=mkRound('East Potomac – White',9);
   return {v:1,players,meId:'p1',hrule:{down:0.5},trip:{stringStake:5,stringNet:true},stringNetSet:1,rounds:[r],cur:r.id,events:[],tab:'home'};
 }
-// ?view=<id> opens a read-only live copy of someone's trip; it never reads or writes this phone's own data
-const VIEW=new URLSearchParams(location.search).get('view');
+// ?view=<id> opens a read-only live copy of someone's trip; it never reads or writes this phone's own data.
+// ?score=<id>&k=<key> is the same live copy, but what it logs is sent to the owner's phone, which merges it in.
+const QS=new URLSearchParams(location.search);
+const SCORER=QS.get('score')&&QS.get('k')||null;
+const VIEW=QS.get('view')||QS.get('score');
 let S=null;
 if(!VIEW)try{S=JSON.parse(localStorage.getItem(KEY))}catch(e){}
 if(!S||S.v!==1) S=mkState();
-if(VIEW)S.tab='board';
+if(VIEW)S.tab=SCORER?'hole':'board';
 // phones that opened v1 have the placeholder card on an untouched first round: swap in White
 {const r0=S.rounds[0];if(r0&&r0.name==='East Potomac'&&!Object.keys(r0.scores).length&&r0.holes.every((h,i)=>h.par===DEF_PARS[i]&&h.si===DEF_SI[i])){r0.name='East Potomac – White';const c=COURSES[r0.name];r0.holes=c.par.map((p,i)=>({par:p,si:c.si[i]}))}}
 // one-time: the Unbroken String now counts handicap strokes by default (the Settings toggle still wins afterwards)
 if(!S.stringNetSet){S.trip.stringNet=true;S.stringNetSet=1}
-function save(){if(VIEW)return;try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}queuePush()}
+function save(){if(SCORER)return scorerSync();if(VIEW)return;try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}queuePush()}
 const round=()=>S.rounds.find(r=>r.id===S.cur)||S.rounds[0];
 // round shown on Board/Money (can be a past one); the round being played stays S.cur
 const viewRound=()=>S.rounds.find(r=>r.id===S.boardRound)||round();
@@ -333,19 +361,19 @@ function setArr(obj,p,i,v,n){if(!obj[p])obj[p]=Array(n).fill(null);obj[p][i]=v}
 
 // ---------- engine: everything derived from raw scores + events, in play order ----------
 function compute(){
+  syncRules();
   const P=S.players.map(p=>p.id),H=S.hrule,ledger=[],R={},amt=new Map();
   const hc={};S.players.forEach(p=>hc[p.id]=+p.hcp||0);
   const str={};P.forEach(p=>str[p]={cur:0,best:0});
   let jar=0;
   for(const r of S.rounds){
     const n=r.holes.length,tp=fineCfg(r,'threeputt');
-    const X={segs:[],recv:{},fines:{},bbb:{},firsts:{},firstHole:{},oneClub:null,ball:null,jarWins:[],tot:{},threePutts:{},lost:{},pen:{},won:{},complete:true};
+    const X={segs:[],recv:{},fines:{},bbb:{},firsts:{},firstHole:{},oneClub:null,ball:null,jarWins:[],tot:{},threePutts:{},lost:{},pen:{},won:{},tied:{},comeback:{},cnt:{},complete:true};
     R[r.id]=X;
-    P.forEach(p=>{X.recv[p]=Array(n).fill(0);X.fines[p]=0;X.bbb[p]=0;X.threePutts[p]=0;X.lost[p]=0;X.pen[p]=0;X.won[p]=0;X.tot[p]={gross:0,net:0,par:0,thru:0}});
+    P.forEach(p=>{X.recv[p]=Array(n).fill(0);X.fines[p]=0;X.bbb[p]=0;X.threePutts[p]=0;X.lost[p]=0;X.pen[p]=0;X.won[p]=0;X.tied[p]=0;X.comeback[p]=0;X.tot[p]={gross:0,net:0,par:0,thru:0}});
     const evs=S.events.filter(e=>e.r===r.id).sort((a,b)=>a.h-b.h||a.t-b.t);
-    const gir=r.games.gir===false?0:+(r.stakes.gir??1)||0;
-    for(const e of evs){const f=FINES[e.type],k=fineKind(e.type);let a=k==='track'?0:k==='bounty'?gir:(fineCfg(r,e.type).on?fineCfg(r,e.type).amt:0);
-      if(k==='bounty'&&!gir)a=0;else if(firstOnly(r,e.type)){if(X.firsts[e.type])a=0;else{X.firsts[e.type]=e.p;X.firstHole[e.type]=e.h}}amt.set(e.id,a)}
+    for(const e of evs){const k=fineKind(e.type);let a=k==='track'?0:k==='bounty'?bountyAmt(r,e.type):(fineCfg(r,e.type).on?fineCfg(r,e.type).amt:0);
+      if(k==='bounty'&&!a)a=0;else if(firstOnly(r,e.type)){if(X.firsts[e.type])a=0;else{X.firsts[e.type]=e.p;X.firstHole[e.type]=e.h}}amt.set(e.id,a)}
     for(let s=0;s*9<n;s++){
       const a=s*9,b=Math.min(n,a+9),idx=[];for(let i=a;i<b;i++)idx.push(i);
       const rank={};[...idx].sort((x,y)=>r.holes[x].si-r.holes[y].si).forEach((i,k)=>rank[i]=k+1);
@@ -356,15 +384,17 @@ function compute(){
         idx.forEach(i=>X.recv[p][i]=Math.floor(st/idx.length)+(rank[i]<=st%idx.length?1:0));
       });
       for(const i of idx){
-        const par=r.holes[i].par;
+        const par=r.holes[i].par,fined=new Set();
         for(const e of evs)if(e.h===i&&X.fines[e.p]!=null){
           const a2=amt.get(e.id),k=fineKind(e.type);
+          (X.cnt[e.type]=X.cnt[e.type]||{})[e.p]=(X.cnt[e.type][e.p]||0)+1;
           if(k==='track'){X[e.type][e.p]++;continue}
           if(!(a2>0))continue;
-          if(k==='bounty'){P.filter(p=>p!==e.p).forEach(p=>ledger.push({r:r.id,from:p,to:e.p,amt:a2,cat:'First GIR'}));continue}
+          if(k==='fine')fined.add(e.p);
+          if(k==='bounty'){P.filter(p=>p!==e.p).forEach(p=>ledger.push({r:r.id,from:p,to:e.p,amt:a2,cat:e.type==='gir'?'First GIR':FINES[e.type].label}));continue}
           jar+=a2;X.fines[e.p]+=a2;ledger.push({r:r.id,from:e.p,to:'JAR',amt:a2,cat:'Fines'});
         }
-        P.forEach(p=>{if(pt(r,p,i)>=3){X.threePutts[p]++;if(tp.on&&tp.amt>0){jar+=tp.amt;X.fines[p]+=tp.amt;ledger.push({r:r.id,from:p,to:'JAR',amt:tp.amt,cat:'Fines'})}}});
+        P.forEach(p=>{if(pt(r,p,i)>=3){X.threePutts[p]++;if(tp.on&&tp.amt>0){fined.add(p);jar+=tp.amt;X.fines[p]+=tp.amt;ledger.push({r:r.id,from:p,to:'JAR',amt:tp.amt,cat:'Fines'})}}});
         const g={};let all=true;
         P.forEach(p=>{
           const v=sc(r,p,i);if(v==null){all=false;return}
@@ -376,7 +406,8 @@ function compute(){
         if(all&&P.length){
           const use={};P.forEach(p=>use[p]=r.jarRule==='net'?g[p]-X.recv[p][i]:g[p]);
           const m=Math.min(...P.map(p=>use[p])),w=P.filter(p=>use[p]===m);
-          if(w.length===1)X.won[w[0]]++;
+          if(w.length===1){X.won[w[0]]++;if(fined.has(w[0]))X.comeback[w[0]]++}
+          else w.forEach(p=>X.tied[p]++);
           if(r.jarRule!=='round'&&w.length===1&&(r.jarRule!=='par'||g[w[0]]<=par)){
             X.jarWins.push({h:i,p:w[0],amt:jar});
             if(jar>0)ledger.push({r:r.id,from:'JAR',to:w[0],amt:jar,cat:'Jar'});
@@ -436,6 +467,19 @@ function compute(){
     Object.keys(str).filter(p=>!leaders.includes(p)).forEach(l=>leaders.forEach(w=>ledger.push({r:'TRIP',from:l,to:w,amt:r2(S.trip.stringStake/leaders.length),cat:'Unbroken String'})));
   return {R,ledger,hc,str,jar,amt,leaders};
 }
+// end-of-round awards, for glory only: ties share them, and one nobody earned isn't given
+const AWARDS=[
+  ['The Altruist','most balls donated to the course',X=>X.lost,'lost ball'],
+  ['Deforestation','most trees hit',X=>X.cnt.tree||{},'tree'],
+  ['Flip Flops','most time at the beach',X=>X.cnt.bunker||{},'bunker'],
+  ['The Philanthropist','paid the most into the jar',X=>X.fines,null],
+  ['Bridesmaid','most holes tied for the best score, never alone',X=>X.tied,'tied hole'],
+  ['Fairway Finder','most wrong fairways found',X=>X.cnt.wrongfw||{},'wrong fairway'],
+  ['The Jordan Spieth Award','most holes won despite a fine on that hole',X=>X.comeback,'hole'],
+];
+function awards(X){const P=S.players.map(p=>p.id);
+  return AWARDS.map(([name,what,get,unit])=>{const v=get(X),m=Math.max(0,...P.map(p=>v[p]||0));return{name,what,unit,n:m,w:m>0?P.filter(p=>(v[p]||0)===m):[]}})}
+const awardVal=a=>a.unit?`${a.n} ${a.unit}${a.n===1?'':'s'}`:money(a.n);
 // every pair: better score wins a flat stake, ties push
 function pairFlat(P,score,stake,rid,cat,ledger){
   for(let x=0;x<P.length;x++)for(let y=x+1;y<P.length;y++){
@@ -460,7 +504,7 @@ function render(){
   if(VIEW&&(!viewMeta.loaded||viewMeta.missing)){
     $('#view').innerHTML=`<div class="card" style="margin-top:40px;text-align:center">${viewMeta.missing?'This live link isn\'t active anymore, or the address got cut off. Ask for the link again.':'Loading the live round…'}</div>`;return;
   }
-  if(VIEW&&!['board','money','rules'].includes(S.tab))S.tab='board';
+  if(VIEW&&!['board','money','rules',...(SCORER?['hole']:[])].includes(S.tab))S.tab=SCORER?'hole':'board';
   const C=compute();
   $('#view').innerHTML=(VIEW?`<div id="viewbar" class="viewbar">${viewBar()}</div>`:'')+({home:vHome,hole:vHole,board:vBoard,money:vMoney,rules:vRules,setup:vSetup}[S.tab]||vHome)(C);
   announceJar(C);
@@ -485,7 +529,7 @@ function vHole(C){
   let o=`<div class="hh"><button class="nav" data-a="hole" data-d="-1" ${i?'':'disabled'}>‹</button>
     <div class="hc"><div class="hn">Hole ${i+1}</div><div class="hs">Par <b>${h.par}</b> · SI ${h.si} · ${esc(r.name)}</div></div>
     <button class="nav" data-a="hole" data-d="1" ${i<n-1?'':'disabled'}>›</button></div>
-    ${FB_CONFIG&&!S.share&&!hasData(r)?'<button class="big" style="background:var(--blue);margin:0 0 10px" data-a="shareLive">Share live link with the group</button>':''}
+    ${FB_CONFIG&&!VIEW&&!S.share&&!hasData(r)?'<button class="big" style="background:var(--blue);margin:0 0 10px" data-a="shareLive">Share live link with the group</button>':''}
     <div class="pills"><span class="pill">Jar ${money(C.jar)}</span>${X.jarWins.filter(w=>w.h===i&&!w.end&&w.amt>0).map(w=>`<span class="pill">${esc(pname(w.p))} won ${money(w.amt)} here</span>`).join('')}${isOC?'<span class="pill oc">One-club hole · 7-iron only</span>':''}${X.ball?`<span class="pill oc">${X.ball.noLoss?'Longest ball: nobody lost one':X.ball.w?`Longest ball: ${esc(X.ball.w.map(pname).join(' & '))}`:`Balls in play ${X.ball.alive.length}`}</span>`:''}</div>`;
   for(const p of S.players){
     const v=sc(r,p.id,i),pu=pt(r,p.id,i),recv=X.recv[p.id][i],T=X.tot[p.id];
@@ -530,6 +574,10 @@ function vBoard(C){
   <div class="card"><table><tr><th>Player</th><th>Thru</th><th>Gross</th><th>Net</th><th>Hcp now</th></tr>
   ${ps.map(p=>{const T=X.tot[p.id];return `<tr><td><b>${esc(p.name)}</b></td><td>${T.thru}</td><td>${T.thru?T.gross+' <span class="mut sm">'+rel(T.gross-T.par)+'</span>':'—'}</td><td>${T.thru?'<b>'+rel(T.net-T.par)+'</b>':'—'}</td><td>${C.hc[p.id]}</td></tr>`}).join('')}</table></div>
   <div class="card"><h3>Scorecard · ${esc(r.name)}</h3>${scorecard(r)}</div>`;
+  const A=awards(X).filter(a=>a.w.length);
+  const aw=`<div class="card"><h3>Awards · ${X.complete?'final':'so far'}</h3>${A.length?A.map(a=>`<div class="aw"><div><b>${a.name}</b><small>${a.what}</small></div><div class="aww">${esc(a.w.map(pname).join(' & '))}<small>${awardVal(a)}</small></div></div>`).join(''):'<div class="mut sm">Nobody has earned one yet.</div>'}</div>`;
+  // the final awards go up top; while playing they wait at the bottom
+  if(X.complete)o+=aw;
   X.segs.forEach((g,k)=>{
     o+=`<div class="card"><h3>${X.segs.length>1?(k?'Back 9':'Front 9'):'9 holes'} · ${g.complete?'final':'in progress'}</h3><table><tr><th>Player</th><th>Gross</th><th>Net</th><th>Hcp</th></tr>
     ${S.players.map(p=>{let pp=0;for(let i=g.a;i<g.b;i++)if(sc(r,p.id,i)!=null)pp+=r.holes[i].par;return `<tr><td>${esc(p.name)}</td><td>${g.gross[p.id]||'—'}</td><td>${g.gross[p.id]?g.net[p.id]+' <span class="mut sm">'+rel(g.net[p.id]-pp)+'</span>':'—'}</td><td>${g.complete?`${g.hcp[p.id]} → <b>${g.after[p.id]}</b>`:g.hcp[p.id]}</td></tr>`}).join('')}</table>
@@ -551,6 +599,7 @@ function vBoard(C){
   const girOn=r.games.gir!==false;
   o+=`<div class="card"><h3>Balls, penalties${girOn?' & first GIR':''}</h3><table><tr><th>Player</th><th>Lost / OB</th><th>Penalties</th></tr>${S.players.map(p=>`<tr><td>${esc(p.name)}</td><td>${X.lost[p.id]}</td><td>${X.pen[p.id]}</td></tr>`).join('')}</table>
   ${girOn?`<div class="sm mut" style="margin-top:6px">${gp?`First green in regulation: <b>${esc(pname(gp))}</b> on hole ${X.firstHole.gir+1}.`:`First green in regulation: nobody yet.`}</div>`:''}</div>`;
+  if(!X.complete)o+=aw;
   return o;
 }
 // the bet sheet: every game, fine and rule, with this round's actual amounts and on/off state
@@ -559,9 +608,10 @@ function vRules(){
   const on=(b,amt)=>b?`<span class="pill" style="background:var(--gl);color:var(--g)">On${amt!=null?' · '+amt:''}</span>`:'<span class="pill" style="background:var(--bg);color:var(--mut)">Off this round</span>';
   const oh=ocHole(r)!=null;
   const sec=(id,title,badge,body)=>`<div class="card" id="rule-${id}"><div class="row" style="justify-content:space-between;margin-bottom:6px"><h3 style="margin:0">${title}</h3>${badge||''}</div><div class="rules">${body}</div></div>`;
-  const fineRows=FINE_KEYS.map(k=>{const c=fineCfg(r,k);
+  const fineRows=FINE_KEYS.filter(k=>fineKind(k)!=='bounty').map(k=>{const c=fineCfg(r,k);
     return `<tr><td>${esc(fineName(k))}</td><td>${!c.on?'off this round':k==='threeputt'?'every time (automatic)':firstOnly(r,k)?'first one each round':'every time'}</td><td>${c.on?money(c.amt):'·'}</td></tr>`}).join('');
-  const toc=[['scoring','Scoring & handicaps'],['jar','Swear jar'],['net9','Net 9 match'],['bbb','Bingo Bango Bongo'],['ball','Longest ball'],['gir','First GIR'],['oneclub','One-club challenge'],['string','Unbroken String'],['tracking','Lost balls & penalties'],['settle','Settling up']];
+  const bounties=FINE_KEYS.filter(k=>fineKind(k)==='bounty');
+  const toc=[['scoring','Scoring & handicaps'],['jar','Swear jar'],['net9','Net 9 match'],['bbb','Bingo Bango Bongo'],['ball','Longest ball'],['gir','First GIR'],...(bounties.length?[['house','House bounties']]:[]),['oneclub','One-club challenge'],['string','Unbroken String'],['tracking','Lost balls & penalties'],['awards','Awards'],['settle','Settling up']];
   return `${VIEW?'<h2>Bet sheet</h2>':'<div class="row" style="margin-bottom:4px"><button class="btn" data-a="tab" data-t="home">‹ Home</button><h2 style="margin:0">Bet sheet</h2></div>'}${S.rounds.length>1?roundChips(r.id,'boardRound'):''}
   
   <div class="card"><div class="toc">${toc.map(([id,t],i)=>`<button class="chip" data-a="jump" data-id="rule-${id}">${i+1}. ${t}</button>`).join('')}</div></div>
@@ -570,16 +620,18 @@ function vRules(){
     <p>After every 9 holes your handicap is recalculated, and it <b>only goes down</b>. Beat your net par by X strokes and it drops by X × ${S.hrule.down} (rounded to 0.1). A bad nine never raises it.</p>`)}
   ${sec('jar','Swear jar','<span class="pill">'+money(f)+' per fine</span>',`
     <p>Fines go into a shared jar. It carries over between rounds until someone wins it.</p>
-    <table><tr><th>Fine</th><th>When</th><th>$</th></tr>${fineRows}<tr><td>3-putt</td><td>every time (automatic from putts)</td><td>${money(f)}</td></tr></table>
+    <table><tr><th>Fine</th><th>When</th><th>$</th></tr>${fineRows}</table>
     <p class="sm mut">"First one each round" fines only cost the first player who does it each round. Later ones are logged but cost $0. The clichés are: "You'll find it", "That'll work", "Happy with that", "I didn't see it bounce". A short tee shot is a drive that doesn't pass the forward tees.</p>
     <p><b>Who wins the jar this round:</b> ${esc(jarRule(r)[0])}. ${esc(jarRule(r)[1])}</p>`)}
   ${sec('net9','Net 9 match',on(g.net9,money(+st.net9)),`<p>${HELP.net9(+st.net9)}</p><p class="sm mut">An 18-hole round has two separate matches: front 9 and back 9.</p>`)}
   ${sec('bbb','Bingo Bango Bongo',on(g.bbb,money(+st.bbbPt)+' / point'),`<p>${HELP.bbb(+st.bbbPt)}</p>`)}
   ${sec('ball','Longest ball (last man standing)',on(g.ball,money(+(st.ball??1))),`<p>${HELP.ball(+(st.ball??1))}</p><p class="sm mut">With ${n+1} players, the winner collects ${money(+(st.ball??1)*n)}.</p>`)}
   ${sec('gir','First green in regulation',on(g.gir!==false,money(+(st.gir??1))),`<p>The first player each round to reach a green in regulation (on in 1 on a par 3, in 2 on a par 4, in 3 on a par 5) collects ${money(+(st.gir??1))} from each other player, ${money(+(st.gir??1)*n)} total.</p>`)}
+  ${bounties.length?sec('house','House bounties','',`<p>Made up by the group. Each other player pays the one who does it.</p><table><tr><th>Bounty</th><th>When</th><th>$ each</th></tr>${bounties.map(k=>{const c=fineCfg(r,k);return `<tr><td>${esc(fineName(k))}${FINES[k].hint?`<div class="sm mut">${esc(FINES[k].hint)}</div>`:''}</td><td>${!c.on?'off this round':firstOnly(r,k)?'first one each round':'every time'}</td><td>${c.on?money(c.amt):'·'}</td></tr>`}).join('')}</table>`):''}
   ${sec('oneclub','One-club challenge',on(oh,oh?'hole '+(+g.oneClubHole+1)+' · '+money(+st.oneClub):null),`<p>On the chosen hole, everyone plays tee to green <b>and putts</b> with only a 7-iron. Lowest score wins ${money(+st.oneClub)} from each other player. Tied winners split it, and if everyone ties nobody pays.</p>`)}
   ${sec('string','Unbroken String (whole trip)',on(+S.trip.stringStake>0,money(+S.trip.stringStake)),`<p>Across every round of the trip: the longest run of holes in a row without a double bogey or worse${S.trip.stringNet?', counted <b>after your handicap strokes</b> (a net double breaks it)':', counted on actual strokes'}. At the end of the trip, the leader collects ${money(+S.trip.stringStake)} from each other player. Tied leaders split it.</p>`)}
   ${sec('tracking','Lost balls & penalties','',`<p>Lost balls / OB and penalty strokes are counted on the Board. They don't cost money by themselves, but a lost ball ends your run in <b>Longest ball</b>. Include penalty strokes in your hole score.</p>`)}
+  ${sec('awards','Awards','',`<p>Bragging rights only, no money. Shown on the Board, final once every hole is in. Ties share an award.</p><table>${AWARDS.map(([n,w])=>`<tr><td>${n}</td><td>${w}</td></tr>`).join('')}</table>`)}
   ${sec('settle','Settling up','',`<p>Every game is netted into one short list of who pays whom (Money tab), per round or for the whole trip. Fines are paid to the jar, and the jar pays out to its winner. Money still in the jar at the end stays in the pot.</p>`)}`;
 }
 function vMoney(C){
@@ -613,8 +665,9 @@ function betsEditor(pre,o,holes){
   ${row(cb('games.ball',g.ball!==false),'Longest ball','each player pays the last marked ball',amt('stakes.ball'))}
   ${row(cb('games.gir',g.gir!==false),'First GIR','each player pays the first green in reg',amt('stakes.gir'))}
   ${row(cb('games.oneClubOn',g.oneClubOn),'One-club challenge','7-iron only; each loser pays the winner',amt('stakes.oneClub'),g.oneClubOn?ocSel:'')}
+  ${FINE_KEYS.filter(k=>fineKind(k)==='bounty').map(k=>row(cb(`fines.${k}.on`,o.fines[k].on!==false),fineName(k),fineHint(k),amt(`fines.${k}.amt`))).join('')}
   <div class="bh">Swear jar<small>${o.fineMode==='every'||pre==='draft'?'per hole, charged every time':'older round: tree, bunker, cart path, water and triple chip only charge the first one'}</small></div>
-  ${FINE_KEYS.map(k=>row(cb(`fines.${k}.on`,o.fines[k].on!==false),fineName(k),fineHint(k),amt(`fines.${k}.amt`))).join('')}
+  ${FINE_KEYS.filter(k=>fineKind(k)!=='bounty').map(k=>row(cb(`fines.${k}.on`,o.fines[k].on!==false),fineName(k),fineHint(k),amt(`fines.${k}.amt`))).join('')}
   <div class="bh">Jar goes to</div>
   <select data-set="${pre}.jarRule" style="width:100%">${Object.entries(JAR_RULES).map(([v,[l]])=>`<option value="${v}" ${(o.jarRule||'outright')===v?'selected':''}>${l}</option>`).join('')}</select>`;
 }
@@ -626,9 +679,11 @@ function mkDraft(){
 }
 function liveBlock(){
   if(!FB_CONFIG)return'';
-  return S.share
+  const sc=S.share&&S.share.k?`<div class="live ${scorerCls()}" id="scorestat">${scorerStatus()}</div><button class="btn" style="width:100%;margin-top:4px" data-a="shareScorer">Resend scorer link</button>`
+    :`<button class="btn" style="width:100%;margin-top:6px" data-a="shareScorer">Send a scorer link (other cart)</button>`;
+  return (S.share
     ?`<div class="live ${liveCls()}" id="livestat">${liveStatus()}</div><button class="btn" style="width:100%;margin-top:4px" data-a="shareLive">Resend live link</button>`
-    :`<button class="big" style="background:var(--blue);margin-top:8px" data-a="shareLive">Share live link</button>`;
+    :`<button class="big" style="background:var(--blue);margin-top:8px" data-a="shareLive">Share live link</button>`)+sc;
 }
 function vHome(C){
   const r=round(),X=C.R[r.id],started=hasData(r),anyData=S.rounds.some(hasData);
@@ -674,6 +729,10 @@ function vSetup(){
   <label class="f"><span>Who is "me" / "I" on the mic</span><select data-set="meId">${S.players.map(p=>`<option value="${p.id}" ${S.meId===p.id?'selected':''}>${esc(p.name)}</option>`).join('')}</select></label>
   </div>
 
+  <div class="card"><h3>House rules</h3><div class="sm mut">Make up a fine or bounty. It shows up in + Log, the mic, round setup and the bet sheet.</div>
+  ${(S.customRules||[]).filter(c=>!c.hidden).map(c=>`<div class="tx" style="font-size:15px"><div style="flex:1;min-width:0"><b>${esc(c.label)}</b><div class="sm mut">${c.kind==='bounty'?'bounty, each pays':'fine to the jar'} ${money(+c.amt||0)}${c.first?' · first one each round':''}</div></div><button class="chip" data-a="editRule" data-id="${c.id}">Edit</button></div>`).join('')}
+  <button class="btn" data-a="editRule" style="margin-top:8px">+ New rule</button></div>
+
   <div class="card"><h3>Rounds</h3>${roundChips(r.id,'pickRound')}
   <button class="btn" data-a="tab" data-t="home">+ Start a new round (Home)</button></div>
 
@@ -691,7 +750,9 @@ function vSetup(){
   <h3 style="margin-top:12px">Handicap after each 9</h3>
   <label class="f"><span>Cut rate</span>${num('hrule.down',S.hrule.down,0.05)}</label></div>
 
-  ${FB_CONFIG?`<div class="card"><h3>Live link</h3>${S.share?`<div class="sm live ${liveCls()}" id="livestat">${liveStatus()}</div><div class="sm" style="word-break:break-all;margin:6px 0">${esc(shareUrl())}</div><button class="btn d" data-a="stopLive">Stop sharing</button>`:'<div class="sm mut">Not sharing. Start a link from Home or the Money tab.</div>'}</div>`:''}
+  ${FB_CONFIG?`<div class="card"><h3>Live link</h3>${S.share?`<div class="sm live ${liveCls()}" id="livestat">${liveStatus()}</div><div class="sm" style="word-break:break-all;margin:6px 0">${esc(shareUrl())}</div>
+    ${S.share.k?`<div class="sm live ${scorerCls()}" id="scorestat">${scorerStatus()}</div>`:''}
+    <div class="row" style="margin-top:6px">${S.share.k?'<button class="btn d" data-a="stopScorer">Turn off scorer link</button>':''}<button class="btn d" data-a="stopLive">Stop sharing</button></div>`:'<div class="sm mut">Not sharing. Start a link from Home or the Money tab.</div>'}</div>`:''}
   <div class="card"><h3>Voice log</h3><div class="sm mut">${(S.voiceLog||[]).length} things heard. Send this to whoever maintains the app so misheard words can be fixed.</div>
   ${(S.voiceLog||[]).slice(-4).reverse().map(v=>`<div class="sm" style="margin-top:6px">“${esc(v.heard[0]||'')}” <span class="mut">→ ${esc(v.did)}</span></div>`).join('')}
   <div class="row" style="margin-top:8px"><button class="btn" data-a="shareVoiceLog">Share log</button><button class="btn d" data-a="clearVoiceLog">Clear</button></div></div>
@@ -701,7 +762,7 @@ function vSetup(){
 }
 
 // ---------- actions ----------
-let undoSnap=null;
+let undoSnap=null,PENDING_RULE=null;
 function snap(){undoSnap=JSON.stringify(S)}
 function commit(){save();render()}
 const ACT={
@@ -751,29 +812,65 @@ const ACT={
   voice:()=>openVoice(),
   close:()=>{stopRec();closeSheet()},
   // the live link belongs to this phone, not to a snapshot: undo restores the round, never the sharing state
-  undo:()=>{if(!undoSnap)return;const sh=S.share;S=JSON.parse(undoSnap);S.share=sh;undoSnap=null;commit();toast('Undone')},
+  // a scorer undoes by sending the reverse of its last change; it never holds the whole trip to roll back to
+  undo:()=>{if(SCORER){const inv=lastInv;if(!inv)return;inv.forEach(applyOp);commit();lastInv=null;toast('Undone');return}
+    if(!undoSnap)return;const sh=S.share;S=JSON.parse(undoSnap);S.share=sh;undoSnap=null;commit();toast('Undone')},
   shareLive:()=>{
     if(!FB_CONFIG)return toast("Live link isn't set up yet");
     if(!S.share){S.share={id:newShareId()};save()}
-    clearTimeout(pushT);pushNow();
-    const url=shareUrl();
-    // share right away, while the tap still counts as a user gesture; the upload runs in the background
-    // if neither the share menu nor the clipboard works, show the link so it can be copied by hand
-    const showLink=()=>openSheet(`<h2>Live link</h2><p class="mut">Copy this and text it to the group:</p><input type="text" readonly value="${esc(url)}" style="width:100%" onfocus="this.select()"><button class="big" data-a="close" style="margin-top:10px">Done</button>`);
-    render();
-    if(navigator.share)navigator.share({title:'Golf Bets live',text:'Follow our round live (read-only):',url}).catch(e=>{if(e&&e.name!=='AbortError')showLink()});
-    else if(navigator.clipboard)navigator.clipboard.writeText(url).then(()=>toast('Link copied. Paste it in the group chat.'),showLink);
-    else showLink();
+    clearTimeout(pushT);pushNow();render();
+    sendLink(shareUrl(),'Live link','Follow our round live (read-only):','Copy this and text it to the group:');
   },
-  stopLive:()=>confirmSheet('Stop the live link?','The link you sent will stop working. You can start a new one any time.','Stop sharing','stopLiveYes'),
+  // a scorer link is the live link plus a private key that lets that phone log scores and fines
+  shareScorer:()=>{
+    if(!FB_CONFIG)return;
+    if(!S.share)S.share={id:newShareId()};
+    if(!S.share.k){S.share.k=newShareId();S.share.keyOk=0}
+    save();clearTimeout(pushT);pushNow();render();
+    sendLink(scorerUrl(),'Scorer link','Score with me on Golf Bets (this link can log scores and fines):','Text this only to the scorer in the other cart:');
+  },
+  stopScorer:()=>confirmSheet('Turn off the scorer link?','That phone can no longer log anything. Anything it logged stays. You can send a new one any time.','Turn off','stopScorerYes'),
+  stopScorerYes:async()=>{
+    const id=S.share&&S.share.id,k=S.share&&S.share.k;if(!k)return;
+    stopInbox();S.share.k=null;S.share.keyOk=0;S.share.keyErr=null;save();closeSheet();render();toast('Scorer link turned off');
+    try{const f=await fbInit();await fbUser();await f.D.remove(f.D.ref(f.db,'keys/'+id));await f.D.remove(f.D.ref(f.db,`inbox/${id}/${k}`))}catch(e){}
+  },
+  stopLive:()=>confirmSheet('Stop the live link?','The link you sent will stop working, and so will the scorer link if there is one. You can start a new one any time.','Stop sharing','stopLiveYes'),
   stopLiveYes:async()=>{
-    const id=S.share&&S.share.id;S.share=null;save();closeSheet();render();toast('Live link stopped');
-    if(id&&FB_CONFIG)try{const f=await fbInit();await fbUser();await f.D.remove(f.D.ref(f.db,'shares/'+id))}catch(e){}
+    const id=S.share&&S.share.id,k=S.share&&S.share.k;stopInbox();S.share=null;save();closeSheet();render();toast('Live link stopped');
+    // the key and inbox rules check who owns the share, so they go first
+    if(id&&FB_CONFIG)try{const f=await fbInit();await fbUser();
+      if(k){await f.D.remove(f.D.ref(f.db,'keys/'+id)).catch(()=>{});await f.D.remove(f.D.ref(f.db,`inbox/${id}/${k}`)).catch(()=>{})}
+      await f.D.remove(f.D.ref(f.db,'shares/'+id))}catch(e){}
   },
   shareVoiceLog:()=>{const text=vlogText()||'(empty)';
     if(navigator.share)navigator.share({title:'Golf Bets voice log',text}).catch(()=>{});
     else if(navigator.clipboard)navigator.clipboard.writeText(text).then(()=>toast('Voice log copied'),()=>openSheet(`<h2>Voice log</h2><textarea style="width:100%;height:50vh">${esc(text)}</textarea><button class="big" data-a="close">Done</button>`));},
   clearVoiceLog:()=>{S.voiceLog=[];commit();toast('Voice log cleared')},
+  editRule:d=>{const c=(S.customRules||[]).find(x=>x.id===d.id)||{kind:'fine',amt:1};
+    openSheet(`<h2>${d.id?'Edit rule':'New rule'}</h2>
+    <div class="rf"><span>Name</span><input type="text" id="rLabel" maxlength="40" value="${esc(c.label)}" placeholder="e.g. Wrong fairway"></div>
+    <div class="rf"><span>Type</span><select id="rKind"><option value="fine" ${c.kind!=='bounty'?'selected':''}>Fine: they pay the jar</option><option value="bounty" ${c.kind==='bounty'?'selected':''}>Bounty: each other player pays them</option></select></div>
+    <div class="rf"><span>Amount ($)</span><input type="number" id="rAmt" inputmode="decimal" step="0.5" min="0" value="${esc(c.amt)}"></div>
+    <label class="f"><input type="checkbox" id="rFirst" ${c.first?'checked':''}><span>Only the first one each round counts</span></label>
+    <div class="rf"><span>Mic words <small>the name always works; add other ways you'd say it, separated by commas</small></span><input type="text" id="rWords" value="${esc(c.words)}" placeholder="e.g. other fairway, next fairway"></div>
+    <div class="rf"><span>Details <small>optional, shown in the bet sheet</small></span><input type="text" id="rHint" maxlength="80" value="${esc(c.hint)}"></div>
+    <button class="big" data-a="saveRule" data-id="${esc(d.id||'')}" style="margin-top:10px">Save rule</button>
+    ${d.id?`<button class="big" style="background:none!important;color:var(--red)!important;border:1px solid var(--red)!important" data-a="delRule" data-id="${esc(d.id)}">Delete rule</button>`:''}
+    <button class="big" style="background:none!important;color:inherit!important;border:1px solid var(--line)!important" data-a="close">Cancel</button>`);
+    if(!d.id)setTimeout(()=>$('#rLabel')?.focus(),50)},
+  saveRule:d=>{const label=$('#rLabel').value.trim();if(!label)return toast('Give the rule a name',false,true);
+    snap();S.customRules=S.customRules||[];
+    let c=S.customRules.find(x=>x.id===d.id);if(!c){c={id:'c_'+uid()};S.customRules.push(c)}
+    Object.assign(c,{label,kind:$('#rKind').value,amt:Math.max(0,+$('#rAmt').value||0),first:$('#rFirst').checked,words:$('#rWords').value.trim(),hint:$('#rHint').value.trim()});
+    // the current round and the next-round form pick up the new price; older rounds keep theirs
+    [round(),S.draft].forEach(o=>{if(o){o.fines=o.fines||{};o.fines[c.id]={on:o.fines[c.id]?.on!==false,amt:c.amt}}});
+    closeSheet();commit();toast(`Saved: ${label}`,true)},
+  delRule:d=>{const c=(S.customRules||[]).find(x=>x.id===d.id);if(!c)return;const used=S.events.filter(e=>e.type===c.id).length;
+    PENDING_RULE=c.id;confirmSheet(`Delete "${c.label}"?`,used?`It was logged ${used} time${used>1?'s':''}. Those stay in their rounds with their money; it just won't show up anymore.`:'It was never logged.','Delete rule','delRuleYes')},
+  delRuleYes:()=>{snap();const id=PENDING_RULE,used=S.events.some(e=>e.type===id);
+    if(used)S.customRules.find(c=>c.id===id).hidden=true;else S.customRules=S.customRules.filter(c=>c.id!==id);
+    closeSheet();commit();toast('Rule deleted',true)},
   whoPick:d=>{const b=PENDING;if(!b)return;PENDING=null;
     b.p.acts.forEach(a=>{if(a.p==='?')a.p=d.p});
     const learn=b.p.ask&&b.p.ask.learn&&$('#whoLearn')?.checked?b.p.ask.learn:null;
@@ -784,7 +881,9 @@ const ACT={
 };
 // in a live view only browsing actions work; nothing can change the round
 const VIEW_OK=new Set(['tab','boardRound','scope','viewRound','close','share','jump','hideBanner']);
-document.addEventListener('click',e=>{const b=e.target.closest('[data-a]');if(!b||!ACT[b.dataset.a]||(VIEW&&!VIEW_OK.has(b.dataset.a)))return;ACT[b.dataset.a](b.dataset,b)});
+// a scorer also logs on the Hole screen; round setup and settings stay with the owner
+const SCORE_OK=new Set([...VIEW_OK,'hole','sc','pu','bbb','fineSheet','addFine','addOther','delEv','voice','undo','whoPick','vsubmit','vretry']);
+document.addEventListener('click',e=>{const b=e.target.closest('[data-a]');if(!b||!ACT[b.dataset.a]||(VIEW&&!(SCORER?SCORE_OK:VIEW_OK).has(b.dataset.a)))return;ACT[b.dataset.a](b.dataset,b)});
 document.addEventListener('change',e=>{
   if(VIEW)return;
   const el=e.target;
@@ -809,21 +908,30 @@ function confirmSheet(title,body,yes,act){
 }
 function openFineSheet(p){
   const r=round(),C=compute(),X=C.R[r.id];
-  const gir=+(r.stakes.gir??1),n=S.players.length-1;
+  const n=S.players.length-1;
   const opt=k=>{const f=FINES[k],kind=fineKind(k),taken=firstOnly(r,k)&&X.firsts[k];
-    const price=kind==='track'?'tracked only':kind==='bounty'?(taken?'taken by '+esc(pname(taken)):`+${money(gir*n)} from the others`):(taken?'taken by '+esc(pname(taken))+' · $0':money(fineCfg(r,k).amt)+' to jar');
+    const price=kind==='track'?'tracked only':kind==='bounty'?(taken?'taken by '+esc(pname(taken)):`+${money(bountyAmt(r,k)*n)} from the others`):(taken?'taken by '+esc(pname(taken))+' · $0':money(fineCfg(r,k).amt)+' to jar');
     return `<button class="opt" data-a="addFine" data-p="${p}" data-ty="${k}">${esc(f.label)}<small>${price}</small></button>`};
-  const sect=(title,kind)=>`<h3 style="margin:14px 0 2px">${title}</h3>`+FINE_ORDER.filter(k=>fineKind(k)===kind&&isOn(r,k)).map(opt).join('');
-  openSheet(`<h2>${esc(pname(p))} · hole ${r.cur+1}</h2>${sect('Fines (go in the jar)','fine')}${r.games.gir===false?'':sect('Bounties (the others pay)','bounty')}${sect('Tracking','track')}
+  const sect=(title,kind)=>{const ks=FINE_ORDER.filter(k=>fineKind(k)===kind&&isOn(r,k));return ks.length?`<h3 style="margin:14px 0 2px">${title}</h3>`+ks.map(opt).join(''):''};
+  openSheet(`<h2>${esc(pname(p))} · hole ${r.cur+1}</h2>${sect('Fines (go in the jar)','fine')}${sect('Bounties (the others pay)','bounty')}${sect('Tracking','track')}
     `);
 }
 let toastT;
 function toast(msg,undo,warn){const t=$('#toast');t.classList.toggle('warn',!!warn);t.innerHTML=`<div>${esc(msg)}</div>${undo&&undoSnap?`<button data-a="undo">Undo</button>`:''}`;t.hidden=false;clearTimeout(toastT);toastT=setTimeout(()=>t.hidden=true,warn?10000:undo?6000:2500)}
+// share right away, while the tap still counts as a user gesture; the upload runs in the background.
+// If neither the share menu nor the clipboard works, show the link so it can be copied by hand.
+function sendLink(url,title,text,copyHint){
+  const showLink=()=>openSheet(`<h2>${esc(title)}</h2><p class="mut">${esc(copyHint)}</p><input type="text" readonly value="${esc(url)}" style="width:100%" onfocus="this.select()"><button class="big" data-a="close" style="margin-top:10px">Done</button>`);
+  if(navigator.share)navigator.share({title:'Golf Bets · '+title,text,url}).catch(e=>{if(e&&e.name!=='AbortError')showLink()});
+  else if(navigator.clipboard)navigator.clipboard.writeText(url).then(()=>toast('Link copied. Paste it in the chat.'),showLink);
+  else showLink();
+}
 function share(){
   const C=compute(),scope=S.moneyScope||'round',r=viewRound();
   const led=scope==='trip'?C.ledger:C.ledger.filter(l=>l.r===r.id),{tx}=settle(led),X=C.R[r.id];
   const lines=[`${scope==='trip'?'Golf trip':r.name} settle-up`,...S.players.map(p=>{const T=X.tot[p.id];return `${p.name}: ${T.gross||'-'} gross, net ${T.thru?rel(T.net-T.par):'-'} (hcp now ${C.hc[p.id]})`}),'',
-    ...(tx.length?tx.map(t=>`${pname(t.from).replace('','')} → ${pname(t.to).replace('','')}: ${money(t.amt)}`):['All square']),`Jar: ${money(C.jar)}`];
+    ...(tx.length?tx.map(t=>`${pname(t.from).replace('','')} → ${pname(t.to).replace('','')}: ${money(t.amt)}`):['All square']),`Jar: ${money(C.jar)}`,
+    ...(scope==='round'?awards(X).filter(a=>a.w.length).map((a,k)=>`${k?'':'\nAwards\n'}${a.name}: ${a.w.map(pname).join(' & ')} (${awardVal(a)})`):[])];
   const text=lines.join('\n');
   if(navigator.share)navigator.share({text}).catch(()=>{});else navigator.clipboard?.writeText(text).then(()=>toast('Copied to clipboard'));
 }
@@ -879,7 +987,8 @@ function parseSeg(seg,par){
   const a={fines:[],putts:null,score:null};let s=' '+seg+' ';
   let m=s.match(/(?:^|\s)(\d)\s*-?\s*putt(?:s|ed|ing)?\b/)||s.match(/\bputts?\s+(\d)\b/);
   if(m){a.putts=Math.min(4,+m[1]);s=s.replace(m[0],' ')}
-  for(const k of FINE_ORDER){if(k==='other')continue;for(const kw of FINES[k].kw){const re=wre(kw);if(re.test(s)){a.fines.push(k);s=s.replace(re,'$1 ');break}}}
+  // house rules first: their words are the group's own, more specific than the built-in ones
+  for(const k of [...FINE_ORDER].sort((x,y)=>!!FINES[y].custom-!!FINES[x].custom)){if(k==='other')continue;for(const kw of FINES[k].kw){const re=wre(kw);if(re.test(s)){a.fines.push(k);s=s.replace(re,'$1 ');break}}}
   if(!a.fines.length&&FINES.other.kw.some(kw=>wre(kw).test(s)))a.fines.push('other');
   for(const [w,off] of TERMS){if(wre(w).test(s)){a.score=par+off;s=s.replace(wre(w),'$1 ');break}}
   if(a.score==null){const n=s.match(/(?:^|[^a-z0-9])(1[0-5]|[1-9])(?![0-9])/);if(n)a.score=+n[1]}
@@ -898,9 +1007,14 @@ function parseUtterance(text){
   return p;
 }
 function parseRaw(text){
+  syncRules();
   const r=round(),n=r.holes.length;let t=norm(text);let h=r.cur;const acts=[],warn=[];
   if(/\b(next hole|go to next)\b/.test(t)&&!/\bhole \d/.test(t))return{acts:[{k:'nav',h:Math.min(n-1,r.cur+1)}],warn};
   if(/\b(previous hole|last hole|go back)\b/.test(t))return{acts:[{k:'nav',h:Math.max(0,r.cur-1)}],warn};
+  // "in the 7th fairway" / "the fairway of hole 7" names another hole's fairway, not the hole being logged
+  const fw=x=>+x===r.cur+1?' fairway ':' wrong fairway ';
+  t=t.replace(/\b(?:the )?fairway (?:of|on|for) (?:hole )?(?:number )?(\d{1,2})\b/g,(_,x)=>fw(x)).replace(/\b(?:the )?(\d{1,2})(?:st|nd|rd|th)? fairway\b/g,(_,x)=>fw(x))
+    .replace(/\b(?:the )?(first|second|third|fourth|fifth|sixth|seventh|eighth|ninth|tenth|eleventh|twelfth|thirteenth|fourteenth|fifteenth|sixteenth|seventeenth|eighteenth) fairway\b/g,(_,x)=>fw(ORDW[x]));
   // "hole 7", "7th hole", "seventh hole", and the way people actually say it: "on 7", "on the 7th", "on number 7"
   let m=t.match(/\bhole (?:number )?(\d{1,2})\b/)||t.match(/\b(\d{1,2})(?:st|nd|rd|th) hole\b/)||t.match(/\bon (?:the |number )?(\d{1,2})(?:st|nd|rd|th)?\b(?! ?(?:putts?|shot|swing|try|attempt)\b)/);
   if(!m){const o=t.match(/\b(?:on the )?(first|second|third|fourth|fifth|sixth|seventh|eighth|ninth|tenth|eleventh|twelfth|thirteenth|fourteenth|fifteenth|sixteenth|seventeenth|eighteenth) hole\b/)||t.match(/\bon the (second|third|fourth|fifth|sixth|seventh|eighth|ninth|tenth|eleventh|twelfth|thirteenth|fourteenth|fifteenth|sixteenth|seventeenth|eighteenth)\b(?! (?:putts?|shot|swing|try|attempt)\b)/);if(o)m=[o[0],ORDW[o[1]]]}
@@ -992,7 +1106,7 @@ function finishVoice(b){
 function vlog(alts,used,did){
   (S.voiceLog=S.voiceLog||[]).push({t:Date.now(),h:round().cur+1,heard:alts,used:used||null,did});
   if(S.voiceLog.length>300)S.voiceLog=S.voiceLog.slice(-300);
-  try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}
+  if(!VIEW)try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}
 }
 const vlogText=()=>(S.voiceLog||[]).map(v=>`${new Date(v.t).toLocaleString()} · hole ${v.h} · heard: ${v.heard.map(x=>'"'+x+'"').join(' / ')} → ${v.did}`).join('\n');
 let PENDING=null;
@@ -1060,12 +1174,107 @@ function queuePush(){if(VIEW||!S.share||!FB_CONFIG)return;clearTimeout(pushT);pu
 async function pushNow(){
   if(!S.share||!FB_CONFIG)return;
   const id=S.share.id;
+  // scorer entries merged into this push can leave the inbox once the push has landed
+  const done=inboxDone.splice(0);
   try{
     const f=await fbInit(),u=await fbUser();
     await f.D.set(f.D.ref(f.db,'shares/'+id),{owner:u.uid,updated:f.D.serverTimestamp(),state:JSON.stringify(publicState())});
     if(S.share&&S.share.id===id){S.share.synced=Date.now();S.share.err=null;try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
-  }catch(e){if(S.share){S.share.err=String(e&&e.message||e);clearTimeout(pushT);pushT=setTimeout(pushNow,30000)}}
+    const k=S.share&&S.share.k;
+    if(k){
+      if(!S.share.keyOk)try{await f.D.set(f.D.ref(f.db,'keys/'+id),{owner:u.uid,k});S.share.keyOk=1;S.share.keyErr=null}catch(e){S.share.keyErr=String(e&&e.message||e)}
+      done.forEach(b=>f.D.remove(f.D.ref(f.db,`inbox/${id}/${k}/${b}`)).catch(()=>{}));
+      startInbox();
+    }
+  }catch(e){inboxDone.unshift(...done);if(S.share){S.share.err=String(e&&e.message||e);clearTimeout(pushT);pushT=setTimeout(pushNow,30000)}}
   refreshLive();
+}
+// ---------- second scorer ----------
+// The scorer phone turns each change into small edits (diffOps) and drops them in a private inbox; the owner's
+// phone replays them (applyOp), publishes the trip, and lists the batch in S.applied so the scorer knows it landed.
+const scorerUrl=()=>location.origin+location.pathname+'?score='+S.share.id+'&k='+S.share.k;
+function scorerStatus(){
+  if(!S.share||!S.share.k)return'';
+  if(S.share.keyErr)return /permission/i.test(S.share.keyErr)?'Scorer link: Firebase rules need updating':'Scorer link · waiting for signal';
+  return S.share.keyOk?'Scorer link on · their entries merge here':'Scorer link · connecting…';
+}
+const scorerCls=()=>S.share&&S.share.keyOk&&!S.share.keyErr?'ok':'bad';
+function diffOps(a,b){
+  const ops=[],P=b.players.map(p=>p.id);
+  for(const rb of b.rounds){const ra=a.rounds.find(x=>x.id===rb.id);if(!ra)continue;
+    for(const [f,t] of [['scores','sc'],['putts','pu']])for(const p of P)for(let h=0;h<rb.holes.length;h++){
+      const x=(ra[f][p]||[])[h]??null,y=(rb[f][p]||[])[h]??null;if(x!==y)ops.push({t,r:rb.id,p,h,v:y,was:x})}
+    for(let h=0;h<rb.holes.length;h++)for(const k of BBB){const x=(ra.bbb[h]||{})[k]||null,y=(rb.bbb[h]||{})[k]||null;if(x!==y)ops.push({t:'bbb',r:rb.id,h,k,v:y,was:x})}
+  }
+  const ia=new Map(a.events.map(e=>[e.id,e])),ib=new Map(b.events.map(e=>[e.id,e]));
+  for(const [id,e] of ib)if(!ia.has(id))ops.push({t:'ev+',ev:e});
+  for(const [id,e] of ia)if(!ib.has(id))ops.push({t:'ev-',id,ev:e});
+  for(const p of b.players){const q=a.players.find(x=>x.id===p.id);if(q&&q.aliases!==p.aliases)ops.push({t:'alias',p:p.id,v:p.aliases,was:q.aliases})}
+  return ops;
+}
+const invOps=ops=>ops.map(o=>o.t==='ev+'?{t:'ev-',id:o.ev.id,ev:o.ev}:o.t==='ev-'?{t:'ev+',ev:o.ev}:{...o,v:o.was,was:o.v}).reverse();
+// replays one edit; anything malformed is ignored, since it arrives from another phone
+function applyOp(o){
+  if(!o||typeof o!=='object')return;
+  const r=S.rounds.find(x=>x.id===o.r),okP=p=>S.players.some(x=>x.id===p),okH=(rr,h)=>rr&&Number.isInteger(h)&&h>=0&&h<rr.holes.length;
+  if(o.t==='sc'||o.t==='pu'){if(okP(o.p)&&okH(r,o.h)&&(o.v===null||(Number.isInteger(o.v)&&o.v>=0&&o.v<=15)))setArr(o.t==='sc'?r.scores:r.putts,o.p,o.h,o.v,r.holes.length)}
+  else if(o.t==='bbb'){if(okH(r,o.h)&&BBB.includes(o.k)&&(o.v===null||okP(o.v))){r.bbb[o.h]=r.bbb[o.h]||{};r.bbb[o.h][o.k]=o.v}}
+  else if(o.t==='ev+'){const e=o.ev||{},er=S.rounds.find(x=>x.id===e.r);
+    if(okH(er,e.h)&&okP(e.p)&&typeof e.id==='string'&&typeof e.type==='string'&&!S.events.some(x=>x.id===e.id))
+      S.events.push({id:e.id.slice(0,40),t:+e.t||Date.now(),r:e.r,h:e.h,p:e.p,type:e.type.slice(0,40),note:String(e.note||'').slice(0,200),...(e.desc?{desc:String(e.desc).slice(0,60)}:{})})}
+  else if(o.t==='ev-'){if(typeof o.id==='string')S.events=S.events.filter(e=>e.id!==o.id)}
+  else if(o.t==='alias'){const pl=S.players.find(p=>p.id===o.p);if(pl)pl.aliases=String(o.v||'').slice(0,200)}
+}
+// scorer side: SC keeps unconfirmed batches and this phone's own current hole, under a key separate from this phone's own trip
+const SKEY='golfbets.scorer.'+VIEW;
+let SC={pending:[],cur:{}},BASE=null,lastInv=null,scErr=null;
+if(SCORER)try{SC={...SC,...JSON.parse(localStorage.getItem(SKEY))}}catch(e){}
+const saveSC=()=>{try{localStorage.setItem(SKEY,JSON.stringify(SC))}catch(e){}};
+function scorerSync(){
+  const r=round();SC.cur[r.id]=r.cur;
+  if(BASE){const ops=diffOps(JSON.parse(BASE),S);BASE=JSON.stringify(S);
+    if(ops.length){lastInv=invOps(ops);SC.pending.push({id:Date.now().toString(36)+uid(),ops});sendPending()}}
+  saveSC();
+}
+async function sendPending(){
+  const todo=SC.pending.filter(b=>!b.sent);
+  if(todo.length)try{const f=await fbInit();await fbUser();
+    for(const b of todo){await f.D.set(f.D.ref(f.db,`inbox/${VIEW}/${SCORER}/${b.id}`),JSON.stringify({id:b.id,ops:b.ops}));b.sent=1}
+    scErr=null;
+  }catch(e){scErr=/permission/i.test(String(e&&e.message||e))?'off':'net'}
+  saveSC();const el=$('#viewbar');if(el)el.innerHTML=viewBar();
+}
+// a new copy of the trip arrived: drop batches the owner has merged, re-apply the rest so they don't flicker away
+function scorerReceive(){
+  const ap=new Set(S.applied||[]);SC.pending=SC.pending.filter(b=>!ap.has(b.id));
+  SC.pending.forEach(b=>b.ops.forEach(applyOp));
+  S.rounds.forEach(r=>{const c=SC.cur[r.id];if(c!=null&&c<r.holes.length)r.cur=c});
+  BASE=JSON.stringify(S);saveSC();
+}
+// owner side: listen to the scorer inbox while sharing with a scorer key
+let inboxOff=null,inboxDone=[];
+async function startInbox(){
+  if(VIEW||!S.share||!S.share.k||inboxOff)return;
+  const id=S.share.id,k=S.share.k;inboxOff=()=>{};
+  try{const f=await fbInit();await fbUser();
+    const off=f.D.onChildAdded(f.D.ref(f.db,`inbox/${id}/${k}`),s=>takeBatch(s.key,s.val()),()=>{inboxOff=null});
+    if(inboxOff)inboxOff=off;else off();
+  }catch(e){inboxOff=null}
+}
+function stopInbox(){if(inboxOff)inboxOff();inboxOff=null}
+function takeBatch(key,raw){
+  if(!S.share||!S.share.k)return;
+  let b=null;try{b=JSON.parse(raw)}catch(e){}
+  S.applied=S.applied||[];
+  if(b&&typeof b.id==='string'&&Array.isArray(b.ops)&&!S.applied.includes(b.id)){
+    b.ops.slice(0,200).forEach(o=>{try{applyOp(o)}catch(e){}});
+    S.applied.push(b.id);if(S.applied.length>300)S.applied.splice(0,S.applied.length-300);
+    // an undo snapshot from before this merge would wipe the other cart's entries
+    undoSnap=null;
+    try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}
+    render();
+  }
+  inboxDone.push(key);clearTimeout(pushT);pushT=setTimeout(pushNow,300);
 }
 const shareUrl=()=>location.origin+location.pathname+'?view='+S.share.id;
 function newShareId(){const a=new Uint8Array(16);crypto.getRandomValues(a);return [...a].map(b=>'abcdefghijkmnpqrstuvwxyz23456789'[b%32]).join('')}
@@ -1075,11 +1284,19 @@ function liveStatus(){
   if(S.share.err)return `Live link on · waiting for signal${S.share.synced?`, last synced ${ago(S.share.synced)}`:''}`;
   return S.share.synced?`Live link on · synced ${ago(S.share.synced)}`:'Live link on · connecting…';
 }
-function refreshLive(){const el=$('#livestat');if(el){el.textContent=liveStatus();el.classList.remove('ok','bad');el.classList.add(liveCls())}}
+function refreshLive(){
+  const el=$('#livestat');if(el){el.textContent=liveStatus();el.classList.remove('ok','bad');el.classList.add(liveCls())}
+  const sc=$('#scorestat');if(sc){sc.textContent=scorerStatus();sc.classList.remove('ok','bad');sc.classList.add(scorerCls())}
+}
 const liveCls=()=>S.share&&S.share.synced&&!S.share.err?'ok':'bad';
-function viewBar(){const r=round();return `<b>Live</b> · ${esc(r.name)} · hole ${r.cur+1} · ${ago(viewMeta.updated)}`}
+function viewBar(){const r=round();
+  if(!SCORER)return `<b>Live</b> · ${esc(r.name)} · hole ${r.cur+1} · ${ago(viewMeta.updated)}`;
+  if(scErr==='off')return `<span class="neg">This scorer link was turned off. What you log now isn't saved.</span>`;
+  const w=SC.pending.filter(b=>!b.sent).length,m=SC.pending.length-w;
+  return `<b>Scoring</b> · ${esc(r.name)} · ${w?`${w} waiting for signal`:m?`sent, merging…`:'all synced'}`}
 async function startViewer(){
-  document.body.classList.add('viewer');
+  document.body.classList.add(SCORER?'scorer':'viewer');
+  if(SCORER){sendPending();setInterval(sendPending,20000);addEventListener('online',sendPending)}
   if(!FB_CONFIG){viewMeta.loaded=viewMeta.missing=true;render();return}
   try{
     const f=await fbInit();
@@ -1087,7 +1304,7 @@ async function startViewer(){
       const d=snap.val();viewMeta.loaded=true;
       if(!d||!d.state){viewMeta.missing=true;render();return}
       const keep={tab:S.tab,boardRound:S.boardRound,moneyScope:S.moneyScope};
-      S={...JSON.parse(d.state),...keep};viewMeta.missing=false;viewMeta.updated=d.updated||Date.now();render();
+      S={...JSON.parse(d.state),...keep};if(SCORER)scorerReceive();viewMeta.missing=false;viewMeta.updated=d.updated||Date.now();render();
     },()=>{viewMeta.loaded=viewMeta.missing=true;render()});
   }catch(e){viewMeta.loaded=viewMeta.missing=true;render()}
   setInterval(()=>{const el=$('#viewbar');if(el&&!viewMeta.missing){el.innerHTML=viewBar()}},15000);

@@ -70,6 +70,9 @@ function suite(){
     ['Mike made bogie','Mike:score5@h9'],
     ['Dave birdy','Dave:score3@h9'],
     ['Lautaro 6 with a 3-putt','Lautaro:score6@h9, Lautaro:putts3@h9'],
+    ['Ryan hit the wrong fairway','Ryan:fine/wrongfw@h9'],
+    ['Mike ended up in the 7th fairway','Mike:fine/wrongfw@h9'],
+    ['Dave is on the fairway of hole 2','Dave:fine/wrongfw@h9'],
   ];
   fresh();round().cur=8;
   for(const [t,want] of PHRASES)eq('voice: '+t,fmt(parseUtterance(t)),want);
@@ -120,6 +123,50 @@ function suite(){
 
   fresh();
   eq('other fine shows what it was for',evLabel({type:'other',desc:'threw his club'})+' / '+evLabel({type:'other'}),'threw his club / Other fine');
+
+  // ---- house rules ----
+  fresh();S.customRules=[{id:'c_lip',label:'Lip out',kind:'fine',amt:2,words:'lipped out, lip out'},{id:'c_chip',label:'Chip in',kind:'bounty',amt:1,first:true}];
+  r=round();r.cur=8;
+  eq('house rule: the mic hears its words',fmt(parseUtterance('Dave lipped out')),'Dave:fine/c_lip@h9');
+  eq('house rule: the mic hears its name',fmt(parseUtterance('Mike chip in')),'Mike:fine/c_chip@h9');
+  S.events.push({id:'l1',t:1,r:r.id,h:0,p:'p4',type:'c_lip'});
+  eq('house rule: a fine uses its own price',ledger('Fines'),'Dave>Jar 2');
+  S.events.push({id:'c1',t:2,r:r.id,h:1,p:'p2',type:'c_chip'},{id:'c2',t:3,r:r.id,h:2,p:'p3',type:'c_chip'});
+  eq('house rule: a first-only bounty pays once',ledger('Chip in'),'Lautaro>Ryan 1, Mike>Ryan 1, Dave>Ryan 1');
+  r.fines={...r.fines,c_lip:{on:false,amt:2}};
+  eq('house rule: switched off for the round costs nothing',ledger('Fines'),'');
+  S.customRules[0].hidden=true;
+  eq('house rule: deleted after use keeps its name on old fines',evLabel({type:'c_lip'}),'Lip out');
+
+  // ---- awards ----
+  fresh();r=round();
+  ['p2','p2','p3'].forEach((p,k)=>lost(r,p,k,k));
+  S.events.push({id:'w1',t:1,r:r.id,h:0,p:'p4',type:'wrongfw'},{id:'w2',t:2,r:r.id,h:3,p:'p4',type:'wrongfw'},{id:'t1',t:3,r:r.id,h:0,p:'p1',type:'tree'});
+  play(r,{p1:[3,4,4,4,4,4,4,4,4],p2:[4,4,4,4,4,4,4,4,4],p3:[5,4,4,4,4,4,4,4,4],p4:[5,5,5,5,5,5,5,5,5]});
+  const AW=Object.fromEntries(awards(compute().R[r.id]).map(a=>[a.name,a.w.map(pname).join('&')+' '+a.n]));
+  eq('awards: Altruist, Fairway Finder, Deforestation',[AW['The Altruist'],AW['Fairway Finder'],AW['Deforestation']].join(' | '),'Ryan 2 | Dave 2 | Lautaro 1');
+  eq('awards: Jordan Spieth (won the hole they were fined on), Bridesmaid',[AW['The Jordan Spieth Award'],AW['Bridesmaid']].join(' | '),'Lautaro 1 | Lautaro&Ryan&Mike 8');
+  eq('awards: nobody in a bunker, no Flip Flops',AW['Flip Flops'],' 0');
+
+  // ---- second scorer: edits from the other phone ----
+  fresh();r=round();
+  const before=JSON.parse(JSON.stringify(S));
+  setArr(r.scores,'p2',0,5,9);r.bbb[0]={bingo:'p1'};S.events.push({id:'e1',t:1,r:r.id,h:0,p:'p3',type:'tree',note:''});
+  const ops=diffOps(before,S),want=JSON.stringify([r.scores,r.bbb[0],S.events]);
+  eq('scorer: a change becomes small edits',ops.map(o=>o.t).join(','),'sc,bbb,ev+');
+  S=JSON.parse(JSON.stringify(before));ops.forEach(applyOp);
+  eq('scorer: the owner replays them to the same result',JSON.stringify([round().scores,round().bbb[0],S.events]),want);
+  invOps(ops).forEach(applyOp);
+  eq('scorer: undo sends the reverse',diffOps(before,S).length,0);
+  const nEv=S.events.length;
+  applyOp({t:'sc',r:round().id,p:'p9',h:0,v:3});applyOp({t:'sc',r:round().id,p:'p1',h:40,v:3});applyOp({t:'ev+',ev:{id:'z',r:round().id,h:99,p:'p1',type:'tree'}});applyOp({t:'nope'});
+  eq('scorer: malformed edits are ignored',diffOps(before,S).length+' '+(S.events.length-nEv),'0 0');
+  // the owner merges a batch once, even if it arrives twice (tests never save or upload)
+  const setItem=Storage.prototype.setItem;Storage.prototype.setItem=()=>{};
+  try{S.share={id:'test',k:'test'};const B=JSON.stringify({id:'b1',ops:[{t:'sc',r:round().id,p:'p1',h:0,v:6}]});
+    takeBatch('b1',B);setArr(round().scores,'p1',0,4,9);takeBatch('b1',B);clearTimeout(pushT);inboxDone.length=0;
+    eq('scorer: a batch is merged once',sc(round(),'p1',0)+' '+S.applied.join(','),'4 b1');
+  }finally{Storage.prototype.setItem=setItem;S.share=null}
 
   fresh();round().jarRule='something-old';
   let rulesOk='ok';try{vRules()}catch(e){rulesOk='crash: '+e.message}
