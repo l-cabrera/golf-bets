@@ -63,6 +63,13 @@ function suite(){
     ['I three putted','Lautaro:putts3@h9'],
     ["Mike's ball went in the water",'Mike:fine/water@h9'],
     ['Ryan hit a tree on hole 4','Ryan:fine/tree@h4'],
+    // what speech-to-text actually writes (from the first real round)
+    ['Ryan had a 4 with 3 putts','Ryan:score4@h9, Ryan:putts3@h9'],
+    ['Ryan had a for with three puts','Ryan:score4@h9, Ryan:putts3@h9'],
+    ['Ryan had a 5 with 2 butts','Ryan:score5@h9, Ryan:putts2@h9'],
+    ['Mike made bogie','Mike:score5@h9'],
+    ['Dave birdy','Dave:score3@h9'],
+    ['Lautaro 6 with a 3-putt','Lautaro:score6@h9, Lautaro:putts3@h9'],
   ];
   fresh();round().cur=8;
   for(const [t,want] of PHRASES)eq('voice: '+t,fmt(parseUtterance(t)),want);
@@ -96,6 +103,23 @@ function suite(){
   fresh();S.players.forEach(p=>p.hcp=9);r=round();play(r,{p1:all9(4),p2:all9(5),p3:all9(5),p4:all9(5)});
   const g=compute().R[r.id].segs[0];
   eq('handicap: beating net par cuts it, a bad nine never raises it',S.players.map(p=>g.after[p.id]).join(' '),'5.5 9 9 9');
+
+  const tree=(r,p,h,t)=>S.events.push({id:'T'+p+h+t,t,r:r.id,h,p,type:'tree'});
+  fresh();r=round();tree(r,'p1',0,1);tree(r,'p2',1,2);
+  eq('fines: tree strikes are charged every time',ledger('Fines'),'Lautaro>Jar 1, Ryan>Jar 1');
+  delete r.fineMode;
+  eq('fines: rounds from before keep "first one only"',ledger('Fines'),'Lautaro>Jar 1');
+
+  fresh();r=round();r.fines.bunker.amt=2;r.fines.tree.on=false;
+  S.events.push({id:'b',t:1,r:r.id,h:0,p:'p3',type:'bunker'});tree(r,'p1',0,2);
+  eq('fines: each has its own price, and off means $0',ledger('Fines'),'Mike>Jar 2');
+  eq('voice: a fine that is off this round is not logged',fmt(parseUtterance('Ryan hit a tree')),'error: Tree strike is off this round');
+
+  fresh();r=round();r.fines.threeputt.amt=0.5;setArr(r.putts,'p4',0,3,9);
+  eq('fines: 3-putt uses its own price',ledger('Fines'),'Dave>Jar 0.5');
+
+  fresh();
+  eq('other fine shows what it was for',evLabel({type:'other',desc:'threw his club'})+' / '+evLabel({type:'other'}),'threw his club / Other fine');
 
   fresh();round().jarRule='something-old';
   let rulesOk='ok';try{vRules()}catch(e){rulesOk='crash: '+e.message}
