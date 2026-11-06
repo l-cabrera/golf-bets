@@ -206,6 +206,7 @@ input[type=number]{width:80px}
 .aw:last-child{border-bottom:0}
 .aw small{display:block;color:var(--mut);font-size:12px;font-weight:400}
 .aww{text-align:right;font-weight:600}
+.rpick{width:100%;margin:2px 0 10px}
 .rf{margin:10px 0}
 .rf>span{display:block;font-size:13px;color:var(--mut);margin-bottom:4px}
 .rf small{display:block;font-size:12px}
@@ -293,6 +294,9 @@ const bountyAmt=(r,k)=>k==='gir'?(r.games.gir===false?0:+(r.stakes.gir??1)||0):f
 // rounds created before per-fine settings charged tree/bunker/cart/water/triple chip to the first player only
 const firstOnly=(r,k)=>!!FINES[k]&&!!(FINES[k].first||(FINES[k].legacyFirst&&r.fineMode!=='every'));
 const isOn=(r,k)=>{const kd=fineKind(k);return kd==='track'?true:k==='gir'?r.games.gir!==false:fineCfg(r,k).on};
+// holes are closed by moving on (Next hole, ›, "next hole", Settle up); rounds from before this have no r.done and count every hole as closed
+const holeDone=(r,i)=>!r.done||!!r.done[i];
+const closeHole=(r,i)=>{if(r.done&&i>=0&&i<r.holes.length)r.done[i]=true};
 const ocHole=r=>{const h=r.games.oneClubHole;return (r.games.oneClubOn??true)&&h!=null&&h!==''&&r.holes[+h]?+h:null};
 const evLabel=e=>e.type==='other'&&e.desc?e.desc:(FINES[e.type]?.label||e.type).replace(/^First /,'').replace(/^./,c=>c.toUpperCase());
 // fill in settings that older rounds/drafts don't have, so the setup editor can bind to them
@@ -330,12 +334,12 @@ function mkRound(name,n,prev){
     stakes:prev?{gir:1,ball:1,...prev.stakes}:{fine:1,net9:5,bbbPt:1,oneClub:5,gir:1,ball:1},
     games:prev?{ball:true,gir:true,...prev.games,oneClubOn:false,oneClubHole:null}:{net9:true,bbb:true,ball:true,gir:true,oneClubOn:false,oneClubHole:null},
     fines:prev&&prev.fines?JSON.parse(JSON.stringify(prev.fines)):mkFines(prev?+prev.stakes.fine||1:1),fineMode:'every',
-    jarRule:prev?prev.jarRule:'outright',scores:{},putts:{},bbb:[],cur:0};
+    jarRule:prev?prev.jarRule:'outright',scores:{},putts:{},bbb:[],done:{},cur:0};
 }
 function mkState(){
   const players=['Lautaro','Ryan','Player 3','Player 4'].map((n,i)=>({id:'p'+(i+1),name:n,aliases:'',hcp:9}));
   const r=mkRound('East Potomac – White',9);
-  return {v:1,players,meId:'p1',hrule:{down:0.5},trip:{stringStake:5,stringNet:true},stringNetSet:1,rounds:[r],cur:r.id,events:[],tab:'home'};
+  return {v:1,players,meId:'p1',hrule:{down:0.5},rounds:[r],cur:r.id,events:[],tab:'home'};
 }
 // ?view=<id> opens a read-only live copy of someone's trip; it never reads or writes this phone's own data.
 // ?score=<id>&k=<key> is the same live copy, but what it logs is sent to the owner's phone, which merges it in.
@@ -348,8 +352,6 @@ if(!S||S.v!==1) S=mkState();
 if(VIEW)S.tab=SCORER?'hole':'board';
 // phones that opened v1 have the placeholder card on an untouched first round: swap in White
 {const r0=S.rounds[0];if(r0&&r0.name==='East Potomac'&&!Object.keys(r0.scores).length&&r0.holes.every((h,i)=>h.par===DEF_PARS[i]&&h.si===DEF_SI[i])){r0.name='East Potomac – White';const c=COURSES[r0.name];r0.holes=c.par.map((p,i)=>({par:p,si:c.si[i]}))}}
-// one-time: the Unbroken String now counts handicap strokes by default (the Settings toggle still wins afterwards)
-if(!S.stringNetSet){S.trip.stringNet=true;S.stringNetSet=1}
 function save(){if(SCORER)return scorerSync();if(VIEW)return;try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}queuePush()}
 const round=()=>S.rounds.find(r=>r.id===S.cur)||S.rounds[0];
 // round shown on Board/Money (can be a past one); the round being played stays S.cur
@@ -364,7 +366,6 @@ function compute(){
   syncRules();
   const P=S.players.map(p=>p.id),H=S.hrule,ledger=[],R={},amt=new Map();
   const hc={};S.players.forEach(p=>hc[p.id]=+p.hcp||0);
-  const str={};P.forEach(p=>str[p]={cur:0,best:0});
   let jar=0;
   for(const r of S.rounds){
     const n=r.holes.length,tp=fineCfg(r,'threeputt');
@@ -399,11 +400,11 @@ function compute(){
         P.forEach(p=>{
           const v=sc(r,p,i);if(v==null){all=false;return}
           g[p]=v;const net=v-X.recv[p][i],T=X.tot[p];T.gross+=v;T.net+=net;T.par+=par;T.thru++;
-          const val=S.trip.stringNet?net:v;
-          if(val>=par+2)str[p].cur=0;else{str[p].cur++;if(str[p].cur>str[p].best)str[p].best=str[p].cur}
         });
-        if(!all)X.complete=false;
-        if(all&&P.length){
+        // a hole is only decided (jar, holes won) once someone moves on from it, so a half-entered score can't win it
+        const closed=all&&holeDone(r,i);
+        if(!closed){X.complete=false;seg.complete=false}
+        if(closed&&P.length){
           const use={};P.forEach(p=>use[p]=r.jarRule==='net'?g[p]-X.recv[p][i]:g[p]);
           const m=Math.min(...P.map(p=>use[p])),w=P.filter(p=>use[p]===m);
           if(w.length===1){X.won[w[0]]++;if(fined.has(w[0]))X.comeback[w[0]]++}
@@ -454,18 +455,14 @@ function compute(){
     const oh=ocHole(r);
     if(oh!=null){
       const g={};P.forEach(p=>g[p]=sc(r,p,+oh));
-      if(P.every(p=>g[p]!=null)){
+      if(P.every(p=>g[p]!=null)&&holeDone(r,+oh)){
         const m=Math.min(...P.map(p=>g[p])),w=P.filter(p=>g[p]===m);
         X.oneClub={w,score:m};
         if(w.length<P.length&&+r.stakes.oneClub>0)P.filter(p=>!w.includes(p)).forEach(l=>w.forEach(wp=>ledger.push({r:r.id,from:l,to:wp,amt:r2(r.stakes.oneClub/w.length),cat:'One-club challenge'})));
       }
     }
   }
-  const best=Math.max(0,...Object.values(str).map(s=>s.best));
-  const leaders=best>0?Object.keys(str).filter(p=>str[p].best===best):[];
-  if(leaders.length&&leaders.length<S.players.length&&+S.trip.stringStake>0)
-    Object.keys(str).filter(p=>!leaders.includes(p)).forEach(l=>leaders.forEach(w=>ledger.push({r:'TRIP',from:l,to:w,amt:r2(S.trip.stringStake/leaders.length),cat:'Unbroken String'})));
-  return {R,ledger,hc,str,jar,amt,leaders};
+  return {R,ledger,hc,jar,amt};
 }
 // end-of-round awards, for glory only: ties share them, and one nobody earned isn't given
 const AWARDS=[
@@ -550,10 +547,12 @@ function vHole(C){
     o+=`<div class="card"><h3>Bingo Bango Bongo</h3>${BBB.map((k,ki)=>`<div class="bbr" style="--n:${S.players.length}"><span class="lab">${['On first','Closest','In first'][ki]}</span>${S.players.map(p=>`<button class="chip ${bb[k]===p.id?'on':''}" data-a="bbb" data-k="${k}" data-p="${p.id}">${esc(p.name.split(' ')[0])}</button>`).join('')}</div>`).join('')}</div>`;
   }
   if(i<n-1)o+=`<button class="big" data-a="hole" data-d="1">Next hole</button>`;
-  else o+=`<button class="big" data-a="tab" data-t="money">Settle up</button>`;
+  else o+=`<button class="big" data-a="finish">Settle up</button>`;
   return o;
 }
-function roundChips(sel,act){return `<div class="seg">${S.rounds.map(r=>`<button class="chip ${r.id===sel?'on':''}" data-a="${act}" data-id="${r.id}">${esc(r.name)}</button>`).join('')}</div>`}
+const roundDate=r=>{const d=new Date((r.date||'')+'T12:00');return isNaN(d)?'':d.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'})};
+// one dropdown of rounds, newest first, labelled by date and course
+function roundPick(sel,act){return `<select class="rpick" data-pick="${act}" aria-label="Round">${[...S.rounds].reverse().map(r=>`<option value="${r.id}" ${r.id===sel?'selected':''}>${esc([roundDate(r),r.name].filter(Boolean).join(' · '))}</option>`).join('')}</select>`}
 // hole-by-hole gross scores, one table per nine, coloured by score vs par
 function scorecard(r){
   let o='';
@@ -570,7 +569,7 @@ function scorecard(r){
 function vBoard(C){
   const r=viewRound(),X=C.R[r.id];
   const ps=[...S.players].sort((a,b)=>{const A=X.tot[a.id],B=X.tot[b.id];return (A.net-A.par)-(B.net-B.par)||B.thru-A.thru});
-  let o=`<h2>Leaderboard</h2>${S.rounds.length>1?roundChips(r.id,'boardRound'):''}
+  let o=`<h2>Leaderboard</h2>${S.rounds.length>1?roundPick(r.id,'boardRound'):''}
   <div class="card"><table><tr><th>Player</th><th>Thru</th><th>Gross</th><th>Net</th><th>Hcp now</th></tr>
   ${ps.map(p=>{const T=X.tot[p.id];return `<tr><td><b>${esc(p.name)}</b></td><td>${T.thru}</td><td>${T.thru?T.gross+' <span class="mut sm">'+rel(T.gross-T.par)+'</span>':'—'}</td><td>${T.thru?'<b>'+rel(T.net-T.par)+'</b>':'—'}</td><td>${C.hc[p.id]}</td></tr>`}).join('')}</table></div>
   <div class="card"><h3>Scorecard · ${esc(r.name)}</h3>${scorecard(r)}</div>`;
@@ -590,8 +589,6 @@ function vBoard(C){
     ${B.noLoss?'<div class="sm" style="margin-top:6px">Nobody lost a ball, so no money moves.</div>':''}${B.w?`<div class="sm" style="margin-top:6px">Winner${B.w.length>1?'s (split)':''}: <b>${esc(B.w.map(pname).join(' & '))}</b></div>`:''}</div>`}
   const oh=ocHole(r);
   if(oh!=null)o+=`<div class="card"><h3>One-club challenge · hole ${+oh+1}</h3>${X.oneClub?`${X.oneClub.w.length===S.players.length?'All tied, no money moves':'Winner'+(X.oneClub.w.length>1?'s (split)':'')+': <b>'+X.oneClub.w.map(pname).map(esc).join(', ')+'</b>'} with ${X.oneClub.score}`:'<span class="mut">Waiting for all scores on that hole.</span>'}</div>`;
-  o+=`<div class="card"><h3>Unbroken String · whole trip</h3><table><tr><th>Player</th><th>Current</th><th>Best</th></tr>
-  ${[...S.players].sort((a,b)=>C.str[b.id].best-C.str[a.id].best).map(p=>`<tr><td>${C.leaders.includes(p.id)?'':''}${esc(p.name)}</td><td>${C.str[p.id].cur}</td><td><b>${C.str[p.id].best}</b></td></tr>`).join('')}</table></div>`;
   o+=`<div class="card"><h3>Swear jar</h3><div class="jarbig">${money(C.jar)}</div>
   <table style="margin-top:8px"><tr><th>Player</th><th>Holes won</th><th>3-putts</th><th>Fines</th></tr>${S.players.map(p=>`<tr><td>${esc(p.name)}</td><td>${X.won[p.id]}</td><td>${X.threePutts[p.id]}</td><td>${money(X.fines[p.id])}</td></tr>`).join('')}</table>
   ${X.jarWins.length?`<div style="margin-top:8px">${X.jarWins.map(w=>`<div class="sm">${w.end?'End of round':'Hole '+(w.h+1)}: <b>${esc(pname(w.p))}</b> won ${w.amt?money(w.amt):'(jar was empty)'}</div>`).join('')}</div>`:''}</div>`;
@@ -611,8 +608,8 @@ function vRules(){
   const fineRows=FINE_KEYS.filter(k=>fineKind(k)!=='bounty').map(k=>{const c=fineCfg(r,k);
     return `<tr><td>${esc(fineName(k))}</td><td>${!c.on?'off this round':k==='threeputt'?'every time (automatic)':firstOnly(r,k)?'first one each round':'every time'}</td><td>${c.on?money(c.amt):'·'}</td></tr>`}).join('');
   const bounties=FINE_KEYS.filter(k=>fineKind(k)==='bounty');
-  const toc=[['scoring','Scoring & handicaps'],['jar','Swear jar'],['net9','Net 9 match'],['bbb','Bingo Bango Bongo'],['ball','Longest ball'],['gir','First GIR'],...(bounties.length?[['house','House bounties']]:[]),['oneclub','One-club challenge'],['string','Unbroken String'],['tracking','Lost balls & penalties'],['awards','Awards'],['settle','Settling up']];
-  return `${VIEW?'<h2>Bet sheet</h2>':'<div class="row" style="margin-bottom:4px"><button class="btn" data-a="tab" data-t="home">‹ Home</button><h2 style="margin:0">Bet sheet</h2></div>'}${S.rounds.length>1?roundChips(r.id,'boardRound'):''}
+  const toc=[['scoring','Scoring & handicaps'],['jar','Swear jar'],['net9','Net 9 match'],['bbb','Bingo Bango Bongo'],['ball','Longest ball'],['gir','First GIR'],...(bounties.length?[['house','House bounties']]:[]),['oneclub','One-club challenge'],['tracking','Lost balls & penalties'],['awards','Awards'],['settle','Settling up']];
+  return `${VIEW?'<h2>Bet sheet</h2>':'<div class="row" style="margin-bottom:4px"><button class="btn" data-a="tab" data-t="home">‹ Home</button><h2 style="margin:0">Bet sheet</h2></div>'}${S.rounds.length>1?roundPick(r.id,'boardRound'):''}
   
   <div class="card"><div class="toc">${toc.map(([id,t],i)=>`<button class="chip" data-a="jump" data-id="rule-${id}">${i+1}. ${t}</button>`).join('')}</div></div>
   ${sec('scoring','Scoring & handicaps','',`
@@ -629,7 +626,6 @@ function vRules(){
   ${sec('gir','First green in regulation',on(g.gir!==false,money(+(st.gir??1))),`<p>The first player each round to reach a green in regulation (on in 1 on a par 3, in 2 on a par 4, in 3 on a par 5) collects ${money(+(st.gir??1))} from each other player, ${money(+(st.gir??1)*n)} total.</p>`)}
   ${bounties.length?sec('house','House bounties','',`<p>Made up by the group. Each other player pays the one who does it.</p><table><tr><th>Bounty</th><th>When</th><th>$ each</th></tr>${bounties.map(k=>{const c=fineCfg(r,k);return `<tr><td>${esc(fineName(k))}${FINES[k].hint?`<div class="sm mut">${esc(FINES[k].hint)}</div>`:''}</td><td>${!c.on?'off this round':firstOnly(r,k)?'first one each round':'every time'}</td><td>${c.on?money(c.amt):'·'}</td></tr>`}).join('')}</table>`):''}
   ${sec('oneclub','One-club challenge',on(oh,oh?'hole '+(+g.oneClubHole+1)+' · '+money(+st.oneClub):null),`<p>On the chosen hole, everyone plays tee to green <b>and putts</b> with only a 7-iron. Lowest score wins ${money(+st.oneClub)} from each other player. Tied winners split it, and if everyone ties nobody pays.</p>`)}
-  ${sec('string','Unbroken String (whole trip)',on(+S.trip.stringStake>0,money(+S.trip.stringStake)),`<p>Across every round of the trip: the longest run of holes in a row without a double bogey or worse${S.trip.stringNet?', counted <b>after your handicap strokes</b> (a net double breaks it)':', counted on actual strokes'}. At the end of the trip, the leader collects ${money(+S.trip.stringStake)} from each other player. Tied leaders split it.</p>`)}
   ${sec('tracking','Lost balls & penalties','',`<p>Lost balls / OB and penalty strokes are counted on the Board. They don't cost money by themselves, but a lost ball ends your run in <b>Longest ball</b>. Include penalty strokes in your hole score.</p>`)}
   ${sec('awards','Awards','',`<p>Bragging rights only, no money. Shown on the Board, final once every hole is in. Ties share an award.</p><table>${AWARDS.map(([n,w])=>`<tr><td>${n}</td><td>${w}</td></tr>`).join('')}</table>`)}
   ${sec('settle','Settling up','',`<p>Every game is netted into one short list of who pays whom (Money tab), per round or for the whole trip. Fines are paid to the jar, and the jar pays out to its winner. Money still in the jar at the end stays in the pot.</p>`)}`;
@@ -640,10 +636,10 @@ function vMoney(C){
   const {bal,tx}=settle(led);
   const cats=[...new Set(led.map(l=>l.cat))];
   let o=`<h2>Settle up</h2><div class="seg"><button class="chip ${scope==='round'?'on':''}" data-a="scope" data-v="round">One round</button><button class="chip ${scope==='trip'?'on':''}" data-a="scope" data-v="trip">All rounds</button></div>
-  ${scope==='round'&&S.rounds.length>1?roundChips(r.id,'boardRound'):''}
+  ${scope==='round'&&S.rounds.length>1?roundPick(r.id,'boardRound'):''}
   <div class="card"><h3>Who pays whom</h3>${tx.length?tx.map(t=>`<div class="tx"><b>${esc(pname(t.from))}</b> → <b>${esc(pname(t.to))}</b><span class="amt">${money(t.amt)}</span></div>`).join(''):'<div class="mut">All square so far.</div>'}
   ${tx.some(t=>t.to==='JAR')?'':''}
-  ${scope==='trip'&&C.leaders.length?'':''}</div>
+</div>
   <div class="card"><h3>Net by game</h3><table class="money"><tr><th>Game</th>${S.players.map(p=>`<th>${esc(p.name.split(' ')[0])}</th>`).join('')}</tr>
   ${cats.map(c=>{const b={};led.filter(l=>l.cat===c).forEach(l=>{b[l.from]=(b[l.from]||0)-l.amt;b[l.to]=(b[l.to]||0)+l.amt});return `<tr><td>${esc(c)}</td>${S.players.map(p=>{const v=r2(b[p.id]||0);return `<td class="${v>0?'pos':v<0?'neg':''}">${v?money(v):'·'}</td>`}).join('')}</tr>`}).join('')}
   <tr><td><b>Total</b></td>${S.players.map(p=>{const v=bal[p.id]||0;return `<td class="${v>0?'pos':v<0?'neg':''}"><b>${money(v)}</b></td>`}).join('')}</tr></table></div>
@@ -733,7 +729,7 @@ function vSetup(){
   ${(S.customRules||[]).filter(c=>!c.hidden).map(c=>`<div class="tx" style="font-size:15px"><div style="flex:1;min-width:0"><b>${esc(c.label)}</b><div class="sm mut">${c.kind==='bounty'?'bounty, each pays':'fine to the jar'} ${money(+c.amt||0)}${c.first?' · first one each round':''}</div></div><button class="chip" data-a="editRule" data-id="${c.id}">Edit</button></div>`).join('')}
   <button class="btn" data-a="editRule" style="margin-top:8px">+ New rule</button></div>
 
-  <div class="card"><h3>Rounds</h3>${roundChips(r.id,'pickRound')}
+  <div class="card"><h3>Round to edit</h3>${roundPick(r.id,'pickRound')}
   <button class="btn" data-a="tab" data-t="home">+ Start a new round (Home)</button></div>
 
   <div class="card"><h3>This round: ${esc(r.name)}</h3>
@@ -744,10 +740,7 @@ function vSetup(){
   <div class="hg"><b>#</b><b>Par</b><b>SI</b>${r.holes.map((h,i)=>`<span>${i+1}</span>${num(`R.holes.${i}.par`,h.par)}${num(`R.holes.${i}.si`,h.si)}`).join('')}</div>
   <div class="row" style="margin-top:10px"><button class="btn d" data-a="delRound">Delete this round</button></div></div>
 
-  <div class="card"><h3>Trip</h3>
-  <label class="f"><span>Unbroken String: each player pays the leader ($)</span>${num('trip.stringStake',S.trip.stringStake,0.5)}</label>
-  <label class="f"><span>String uses handicap strokes (a double after your strokes breaks it)</span><input type="checkbox" data-set="trip.stringNet" data-ty="bool" ${S.trip.stringNet?'checked':''}></label>
-  <h3 style="margin-top:12px">Handicap after each 9</h3>
+  <div class="card"><h3>Handicap after each 9</h3>
   <label class="f"><span>Cut rate</span>${num('hrule.down',S.hrule.down,0.05)}</label></div>
 
   ${FB_CONFIG?`<div class="card"><h3>Live link</h3>${S.share?`<div class="sm live ${liveCls()}" id="livestat">${liveStatus()}</div><div class="sm" style="word-break:break-all;margin:6px 0">${esc(shareUrl())}</div>
@@ -767,12 +760,13 @@ function snap(){undoSnap=JSON.stringify(S)}
 function commit(){save();render()}
 const ACT={
   tab:d=>{S.tab=d.t;commit();scrollTo(0,0)},
-  hole:d=>{const r=round();r.cur=Math.max(0,Math.min(r.holes.length-1,r.cur+(+d.d)));commit();scrollTo(0,0)},
+  hole:d=>{const r=round();if(+d.d>0)closeHole(r,r.cur);r.cur=Math.max(0,Math.min(r.holes.length-1,r.cur+(+d.d)));commit();scrollTo(0,0)},
   sc:d=>{const r=round(),i=r.cur,par=r.holes[i].par,v=sc(r,d.p,i);let nv;
     if(+d.d===0)nv=v==null?par:v;else nv=v==null?par+(+d.d):v+(+d.d);
     nv=Math.max(1,Math.min(15,nv));setArr(r.scores,d.p,i,nv,r.holes.length);commit()},
   pu:d=>{const r=round(),i=r.cur,v=pt(r,d.p,i);setArr(r.putts,d.p,i,v===+d.v?null:+d.v,r.holes.length);commit()},
   bbb:d=>{const r=round(),i=r.cur;r.bbb[i]=r.bbb[i]||{};r.bbb[i][d.k]=r.bbb[i][d.k]===d.p?null:d.p;commit()},
+  finish:()=>{const r=round();closeHole(r,r.cur);S.tab='money';commit();scrollTo(0,0)},
   fineSheet:d=>openFineSheet(d.p),
   addFine:d=>{
     if(d.ty==='other')return openSheet(`<h2>Other fine · ${esc(pname(d.p))}</h2><input type="text" id="otherDesc" maxlength="60" placeholder="What for? e.g. threw his club" style="width:100%"><button class="big" data-a="addOther" data-p="${d.p}" style="margin-top:10px">Add ${money(fineCfg(round(),'other').amt)} fine</button><button class="big" data-a="close" style="background:none;color:inherit;border:1px solid var(--line)">Cancel</button>`),setTimeout(()=>$('#otherDesc')?.focus(),50);
@@ -882,11 +876,12 @@ const ACT={
 // in a live view only browsing actions work; nothing can change the round
 const VIEW_OK=new Set(['tab','boardRound','scope','viewRound','close','share','jump','hideBanner']);
 // a scorer also logs on the Hole screen; round setup and settings stay with the owner
-const SCORE_OK=new Set([...VIEW_OK,'hole','sc','pu','bbb','fineSheet','addFine','addOther','delEv','voice','undo','whoPick','vsubmit','vretry']);
+const SCORE_OK=new Set([...VIEW_OK,'hole','finish','sc','pu','bbb','fineSheet','addFine','addOther','delEv','voice','undo','whoPick','vsubmit','vretry']);
 document.addEventListener('click',e=>{const b=e.target.closest('[data-a]');if(!b||!ACT[b.dataset.a]||(VIEW&&!(SCORER?SCORE_OK:VIEW_OK).has(b.dataset.a)))return;ACT[b.dataset.a](b.dataset,b)});
 document.addEventListener('change',e=>{
+  const el=e.target,pick=el.dataset&&el.dataset.pick;
+  if(pick){if(ACT[pick]&&(!VIEW||VIEW_OK.has(pick)))ACT[pick]({id:el.value});return}
   if(VIEW)return;
-  const el=e.target;
   if(el.id==='impFile'){const f=el.files[0];if(!f)return;f.text().then(t=>{try{const x=JSON.parse(t);if(x.v!==1)throw 0;snap();x.share=S.share;S=x;commit();toast('Imported',true)}catch(err){toast("That file isn't a Golf Bets backup")}});return}
   const path=el.dataset.set;if(!path)return;
   let v=el.type==='checkbox'?el.checked:el.value;
@@ -1080,7 +1075,7 @@ const describe=a=>a.k==='fine'?FINES[a.ty].label.replace('First ','').replace(/ 
 function applyActs(acts,note){
   const r=round(),n=r.holes.length,out=[];
   for(const a of acts){
-    if(a.k==='nav'){r.cur=a.h;out.push('Hole '+(a.h+1));continue}
+    if(a.k==='nav'){if(a.h>r.cur)closeHole(r,r.cur);r.cur=a.h;out.push('Hole '+(a.h+1));continue}
     const nm=pname(a.p),hh=' (h'+(a.h+1)+')';
     if(a.k==='score'){setArr(r.scores,a.p,a.h,a.v,n);out.push(`${nm} ${a.v}`+hh)}
     if(a.k==='putts'){setArr(r.putts,a.p,a.h,a.v,n);out.push(`${nm} ${a.v} putt${a.v===1?'':'s'}`+(a.v>=3?' ':''))}
@@ -1204,6 +1199,7 @@ function diffOps(a,b){
   for(const rb of b.rounds){const ra=a.rounds.find(x=>x.id===rb.id);if(!ra)continue;
     for(const [f,t] of [['scores','sc'],['putts','pu']])for(const p of P)for(let h=0;h<rb.holes.length;h++){
       const x=(ra[f][p]||[])[h]??null,y=(rb[f][p]||[])[h]??null;if(x!==y)ops.push({t,r:rb.id,p,h,v:y,was:x})}
+    if(rb.done)for(let h=0;h<rb.holes.length;h++){const x=!!(ra.done||{})[h],y=!!rb.done[h];if(x!==y)ops.push({t:'done',r:rb.id,h,v:y,was:x})}
     for(let h=0;h<rb.holes.length;h++)for(const k of BBB){const x=(ra.bbb[h]||{})[k]||null,y=(rb.bbb[h]||{})[k]||null;if(x!==y)ops.push({t:'bbb',r:rb.id,h,k,v:y,was:x})}
   }
   const ia=new Map(a.events.map(e=>[e.id,e])),ib=new Map(b.events.map(e=>[e.id,e]));
@@ -1218,6 +1214,7 @@ function applyOp(o){
   if(!o||typeof o!=='object')return;
   const r=S.rounds.find(x=>x.id===o.r),okP=p=>S.players.some(x=>x.id===p),okH=(rr,h)=>rr&&Number.isInteger(h)&&h>=0&&h<rr.holes.length;
   if(o.t==='sc'||o.t==='pu'){if(okP(o.p)&&okH(r,o.h)&&(o.v===null||(Number.isInteger(o.v)&&o.v>=0&&o.v<=15)))setArr(o.t==='sc'?r.scores:r.putts,o.p,o.h,o.v,r.holes.length)}
+  else if(o.t==='done'){if(okH(r,o.h)&&r.done)r.done[o.h]=!!o.v}
   else if(o.t==='bbb'){if(okH(r,o.h)&&BBB.includes(o.k)&&(o.v===null||okP(o.v))){r.bbb[o.h]=r.bbb[o.h]||{};r.bbb[o.h][o.k]=o.v}}
   else if(o.t==='ev+'){const e=o.ev||{},er=S.rounds.find(x=>x.id===e.r);
     if(okH(er,e.h)&&okP(e.p)&&typeof e.id==='string'&&typeof e.type==='string'&&!S.events.some(x=>x.id===e.id))

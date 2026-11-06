@@ -79,7 +79,8 @@ function suite(){
 
   // ---- games & money ----
   const ledger=cat=>compute().ledger.filter(l=>l.cat===cat).map(l=>`${pname(l.from)}>${pname(l.to)} ${l.amt}`).join(', ');
-  const play=(r,rows)=>{for(const p in rows)rows[p].forEach((v,i)=>setArr(r.scores,p,i,v,r.holes.length))};
+  // plays the holes and moves on from each, as tapping Next hole does
+  const play=(r,rows)=>{for(const p in rows)rows[p].forEach((v,i)=>{setArr(r.scores,p,i,v,r.holes.length);closeHole(r,i)})};
   const lost=(r,p,h,t)=>S.events.push({id:'L'+p+h,t:t||h,r:r.id,h,p,type:'lost'});
   const all9=v=>Array(9).fill(v);
   let r;
@@ -101,6 +102,16 @@ function suite(){
 
   fresh();r=round();S.events.push({id:'f',t:1,r:r.id,h:0,p:'p2',type:'tree'});play(r,{p1:[3],p2:[4],p3:[4],p4:[5]});
   eq('jar: a fine, then an outright hole win takes it',ledger('Jar'),'Jar>Lautaro 1');
+
+  // three 5s on a par 3, then one tap of + on the fourth player shows 4: nobody wins until Next hole
+  fresh();r=round();S.tab='hole';S.events.push({id:'f2',t:1,r:r.id,h:0,p:'p2',type:'tree'});
+  ['p1','p2','p3'].forEach(p=>setArr(r.scores,p,0,5,9));setArr(r.scores,'p4',0,4,9);
+  eq('jar: all four scores in but still on the hole → not decided yet',ledger('Jar')+'|'+compute().R[r.id].won.p4,'|0');
+  setArr(r.scores,'p4',0,6,9);r.cur=0;
+  {const si=Storage.prototype.setItem;Storage.prototype.setItem=()=>{};try{ACT.hole({d:'1'})}finally{Storage.prototype.setItem=si}}
+  eq('jar: decided when you tap Next hole, with the corrected score',ledger('Jar')+'|'+r.done[0],'|true');
+  setArr(r.scores,'p4',0,4,9);
+  eq('jar: an old round without the Next-hole marker still decides at once',(delete r.done,ledger('Jar')),'Jar>Dave 1');
 
   // White is par 34. All 4s with 9 strokes = net 27, 7 under → drops 7 × 0.5. All 5s = net 36, over → unchanged.
   fresh();S.players.forEach(p=>p.hcp=9);r=round();play(r,{p1:all9(4),p2:all9(5),p3:all9(5),p4:all9(5)});
