@@ -1,1 +1,5 @@
 .claude/
+
+# your own round backups: this repo is public, so they never get committed
+my-data/
+golf-bets-*.json

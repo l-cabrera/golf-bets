@@ -179,6 +179,10 @@ function suite(){
     eq('scorer: a batch is merged once',sc(round(),'p1',0)+' '+S.applied.join(','),'4 b1');
   }finally{Storage.prototype.setItem=setItem;S.share=null}
 
+  fresh();r=round();r.name='UNC Finley GC (back 9)';r.date='2026-11-06';
+  const before2=roundPick(r.id,'boardRound').includes('UNC Finley GC (back 9)');r.played='East Potomac – Blue';
+  eq('round played elsewhere shows the real course, keeping the card',before2+' '+roundPick(r.id,'boardRound').replace(/<[^>]+>/g,'')+' | '+courseName(r),'true Fri, Nov 6 · East Potomac – Blue | East Potomac – Blue');
+
   fresh();round().jarRule='something-old';
   let rulesOk='ok';try{vRules()}catch(e){rulesOk='crash: '+e.message}
   eq('rules tab survives an unknown jar rule',rulesOk,'ok');

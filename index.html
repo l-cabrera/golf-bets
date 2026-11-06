@@ -524,7 +524,7 @@ function vHole(C){
   const r=round(),X=C.R[r.id],i=r.cur,h=r.holes[i],n=r.holes.length,seg=X.segs[Math.floor(i/9)];
   const isOC=ocHole(r)===i;
   let o=`<div class="hh"><button class="nav" data-a="hole" data-d="-1" ${i?'':'disabled'}>‹</button>
-    <div class="hc"><div class="hn">Hole ${i+1}</div><div class="hs">Par <b>${h.par}</b> · SI ${h.si} · ${esc(r.name)}</div></div>
+    <div class="hc"><div class="hn">Hole ${i+1}</div><div class="hs">Par <b>${h.par}</b> · SI ${h.si} · ${esc(courseName(r))}</div></div>
     <button class="nav" data-a="hole" data-d="1" ${i<n-1?'':'disabled'}>›</button></div>
     ${FB_CONFIG&&!VIEW&&!S.share&&!hasData(r)?'<button class="big" style="background:var(--blue);margin:0 0 10px" data-a="shareLive">Share live link with the group</button>':''}
     <div class="pills"><span class="pill">Jar ${money(C.jar)}</span>${X.jarWins.filter(w=>w.h===i&&!w.end&&w.amt>0).map(w=>`<span class="pill">${esc(pname(w.p))} won ${money(w.amt)} here</span>`).join('')}${isOC?'<span class="pill oc">One-club hole · 7-iron only</span>':''}${X.ball?`<span class="pill oc">${X.ball.noLoss?'Longest ball: nobody lost one':X.ball.w?`Longest ball: ${esc(X.ball.w.map(pname).join(' & '))}`:`Balls in play ${X.ball.alive.length}`}</span>`:''}</div>`;
@@ -550,9 +550,11 @@ function vHole(C){
   else o+=`<button class="big" data-a="finish">Settle up</button>`;
   return o;
 }
+// where the round was actually played; the scorecard name can differ (e.g. another course's card as a stand-in)
+const courseName=r=>r.played||r.name;
 const roundDate=r=>{const d=new Date((r.date||'')+'T12:00');return isNaN(d)?'':d.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'})};
 // one dropdown of rounds, newest first, labelled by date and course
-function roundPick(sel,act){return `<select class="rpick" data-pick="${act}" aria-label="Round">${[...S.rounds].reverse().map(r=>`<option value="${r.id}" ${r.id===sel?'selected':''}>${esc([roundDate(r),r.name].filter(Boolean).join(' · '))}</option>`).join('')}</select>`}
+function roundPick(sel,act){return `<select class="rpick" data-pick="${act}" aria-label="Round">${[...S.rounds].reverse().map(r=>`<option value="${r.id}" ${r.id===sel?'selected':''}>${esc([roundDate(r),courseName(r)].filter(Boolean).join(' · '))}</option>`).join('')}</select>`}
 // hole-by-hole gross scores, one table per nine, coloured by score vs par
 function scorecard(r){
   let o='';
@@ -572,7 +574,7 @@ function vBoard(C){
   let o=`<h2>Leaderboard</h2>${S.rounds.length>1?roundPick(r.id,'boardRound'):''}
   <div class="card"><table><tr><th>Player</th><th>Thru</th><th>Gross</th><th>Net</th><th>Hcp now</th></tr>
   ${ps.map(p=>{const T=X.tot[p.id];return `<tr><td><b>${esc(p.name)}</b></td><td>${T.thru}</td><td>${T.thru?T.gross+' <span class="mut sm">'+rel(T.gross-T.par)+'</span>':'—'}</td><td>${T.thru?'<b>'+rel(T.net-T.par)+'</b>':'—'}</td><td>${C.hc[p.id]}</td></tr>`}).join('')}</table></div>
-  <div class="card"><h3>Scorecard · ${esc(r.name)}</h3>${scorecard(r)}</div>`;
+  <div class="card"><h3>Scorecard · ${esc(courseName(r))}${r.played&&r.played!==r.name?` <span style="text-transform:none;letter-spacing:0">(${esc(r.name)} card)</span>`:''}</h3>${scorecard(r)}</div>`;
   const A=awards(X).filter(a=>a.w.length);
   const aw=`<div class="card"><h3>Awards · ${X.complete?'final':'so far'}</h3>${A.length?A.map(a=>`<div class="aw"><div><b>${a.name}</b><small>${a.what}</small></div><div class="aww">${esc(a.w.map(pname).join(' & '))}<small>${awardVal(a)}</small></div></div>`).join(''):'<div class="mut sm">Nobody has earned one yet.</div>'}</div>`;
   // the final awards go up top; while playing they wait at the bottom
@@ -688,7 +690,7 @@ function vHome(C){
   const thru=Math.max(0,...S.players.map(p=>X.tot[p.id].thru));
   const num=(path,val)=>`<input type="number" inputmode="decimal" step="0.5" data-set="${path}" data-ty="num" value="${esc(val)}">`;
   let o=`<div class="row" style="justify-content:space-between;margin-bottom:6px"><h2 style="margin:0">Golf Bets</h2><div class="row" style="gap:6px"><button class="btn" data-a="tab" data-t="rules">Rules</button><button class="btn" data-a="tab" data-t="setup">Settings</button></div></div>`;
-  if(started)o+=`<div class="card"><h3>Round in progress</h3><div style="font-size:19px;font-weight:800">${esc(r.name)}</div>
+  if(started)o+=`<div class="card"><h3>Round in progress</h3><div style="font-size:19px;font-weight:800">${esc(courseName(r))}</div>
     <div class="mut sm">Thru ${thru} of ${r.holes.length} · Jar ${money(C.jar)}</div>
     <button class="big" data-a="tab" data-t="hole">Continue · hole ${r.cur+1}</button>${liveBlock()}</div>`;
   o+=`<${started?'details':'div'} class="card" ${started&&S.draftOpen?'open':''} data-tog="draftOpen">${started?'<summary><b>+ Start the next round</b></summary>':'<h3>Start a round</h3>'}
@@ -709,7 +711,7 @@ function vHome(C){
       const best=ps.length?Math.min(...ps.map(p=>Y.tot[p.id].net-Y.tot[p.id].par)):null;
       const lead=ps.filter(p=>Y.tot[p.id].net-Y.tot[p.id].par===best).map(p=>p.name).join(' & ');
       const thru=Math.max(0,...S.players.map(p=>Y.tot[p.id].thru)),done=thru===x.holes.length;
-      return `<div class="tx" style="font-size:15px;flex-wrap:wrap"><div style="flex:1;min-width:0"><b>${esc(x.name)}</b>${x.id===S.cur?' <span class="pill" style="font-size:11px">playing</span>':''}
+      return `<div class="tx" style="font-size:15px;flex-wrap:wrap"><div style="flex:1;min-width:0"><b>${esc(courseName(x))}</b>${x.id===S.cur?' <span class="pill" style="font-size:11px">playing</span>':''}
         <div class="sm mut">${esc(x.date)} · ${done?'final':'thru '+thru} · ${lead?`low net: ${esc(lead)} (${rel(best)})`:'no scores'}</div></div>
         <button class="chip" data-a="viewRound" data-id="${x.id}" data-t="board">Scores</button><button class="chip" data-a="viewRound" data-id="${x.id}" data-t="money">Money</button></div>`}).join('')}</div>`;
   }
@@ -732,8 +734,9 @@ function vSetup(){
   <div class="card"><h3>Round to edit</h3>${roundPick(r.id,'pickRound')}
   <button class="btn" data-a="tab" data-t="home">+ Start a new round (Home)</button></div>
 
-  <div class="card"><h3>This round: ${esc(r.name)}</h3>
-  <label class="f"><span>Course name</span><input type="text" data-set="R.name" value="${esc(r.name)}"></label>
+  <div class="card"><h3>This round: ${esc(courseName(r))}</h3>
+  <label class="f"><span>Scorecard used</span><input type="text" data-set="R.name" value="${esc(r.name)}"></label>
+  <label class="f"><span>Played at <small class="mut">if not the same course</small></span><input type="text" data-set="R.played" value="${esc(r.played||'')}" placeholder="e.g. East Potomac – Blue"></label>
   ${betsEditor('R',r,r.holes)}
   <h3 style="margin-top:12px">Scorecard</h3>
   <div class="row" style="margin-bottom:8px"><select id="ldCourse" style="flex:1;min-width:0">${Object.keys(COURSES).filter(k=>COURSES[k].par.length===n).map(k=>`<option ${k===r.name?'selected':''}>${esc(k)}</option>`).join('')}</select><button class="btn" data-a="loadCourse">Load card</button></div>
@@ -924,7 +927,7 @@ function sendLink(url,title,text,copyHint){
 function share(){
   const C=compute(),scope=S.moneyScope||'round',r=viewRound();
   const led=scope==='trip'?C.ledger:C.ledger.filter(l=>l.r===r.id),{tx}=settle(led),X=C.R[r.id];
-  const lines=[`${scope==='trip'?'Golf trip':r.name} settle-up`,...S.players.map(p=>{const T=X.tot[p.id];return `${p.name}: ${T.gross||'-'} gross, net ${T.thru?rel(T.net-T.par):'-'} (hcp now ${C.hc[p.id]})`}),'',
+  const lines=[`${scope==='trip'?'Golf trip':courseName(r)} settle-up`,...S.players.map(p=>{const T=X.tot[p.id];return `${p.name}: ${T.gross||'-'} gross, net ${T.thru?rel(T.net-T.par):'-'} (hcp now ${C.hc[p.id]})`}),'',
     ...(tx.length?tx.map(t=>`${pname(t.from).replace('','')} → ${pname(t.to).replace('','')}: ${money(t.amt)}`):['All square']),`Jar: ${money(C.jar)}`,
     ...(scope==='round'?awards(X).filter(a=>a.w.length).map((a,k)=>`${k?'':'\nAwards\n'}${a.name}: ${a.w.map(pname).join(' & ')} (${awardVal(a)})`):[])];
   const text=lines.join('\n');
@@ -1287,10 +1290,10 @@ function refreshLive(){
 }
 const liveCls=()=>S.share&&S.share.synced&&!S.share.err?'ok':'bad';
 function viewBar(){const r=round();
-  if(!SCORER)return `<b>Live</b> · ${esc(r.name)} · hole ${r.cur+1} · ${ago(viewMeta.updated)}`;
+  if(!SCORER)return `<b>Live</b> · ${esc(courseName(r))} · hole ${r.cur+1} · ${ago(viewMeta.updated)}`;
   if(scErr==='off')return `<span class="neg">This scorer link was turned off. What you log now isn't saved.</span>`;
   const w=SC.pending.filter(b=>!b.sent).length,m=SC.pending.length-w;
-  return `<b>Scoring</b> · ${esc(r.name)} · ${w?`${w} waiting for signal`:m?`sent, merging…`:'all synced'}`}
+  return `<b>Scoring</b> · ${esc(courseName(r))} · ${w?`${w} waiting for signal`:m?`sent, merging…`:'all synced'}`}
 async function startViewer(){
   document.body.classList.add(SCORER?'scorer':'viewer');
   if(SCORER){sendPending();setInterval(sendPending,20000);addEventListener('online',sendPending)}
